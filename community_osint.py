@@ -288,13 +288,28 @@ def extract_community_niche(name: str, desc: str) -> list[str]:
     return found[:4]
 
 
+GLOBAL_ORGANIZATIONS_BLACKLIST = {
+    # Diving & Water Safety Bodies
+    "divers alert network", "dan", "padi", "ssi", "naui", "cmas", "scuba schools international",
+    "professional association of diving instructors",
+    # Sports & Global Federations
+    "fifa", "fiba", "atp", "wta", "bwf", "fim", "fia", "ittf", "ioc", "koni", "imi",
+    # Tech Giants & Social Platforms
+    "google", "microsoft", "apple", "amazon", "meta", "facebook", "instagram",
+    "twitter", "tiktok", "youtube", "linkedin", "spotify", "telegram", "whatsapp",
+    # International & Government Agencies
+    "unesco", "unicef", "who", "united nations", "pbb", "red cross", "palang merah",
+    "kemenpora", "kemenparekraf", "kementerian", "pemerintah", "pemprov", "pemda",
+}
+
+
 def extract_other_pic_communities(
     results: list[tuple[str, str]],
     pic_name: str,
     current_comm: str,
     main_comm_handle: str = ""
 ) -> list[str]:
-    """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity (including IG handles)."""
+    """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity (excluding global bodies)."""
     discovered = []
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
@@ -329,8 +344,13 @@ def extract_other_pic_communities(
             for m in p.finditer(title):
                 cand = m.group(1).strip(" -–—|·,:")
                 cand_clean = re.sub(r"[^a-zA-Z0-9]+", "", cand.lower())
-                words = cand.lower().split()
+                cand_lower = cand.lower().strip()
+                words = cand_lower.split()
+
                 if len(cand) < 4 or cand_clean in seen:
+                    continue
+                # Skip global bodies and tech platforms
+                if cand_lower in GLOBAL_ORGANIZATIONS_BLACKLIST or any(gb in cand_lower for gb in GLOBAL_ORGANIZATIONS_BLACKLIST):
                     continue
                 if any(w in blacklist_words for w in words[:1]) and len(words) > 2:
                     continue
