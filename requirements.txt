@@ -1,3 +1,2 @@
 openpyxl>=3.1.2
-holehe>=1.61
 requests>=2.31.0

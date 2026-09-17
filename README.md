@@ -8,20 +8,19 @@ Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) berbasis Python
 
 1. **Pemisahan Kolom Excel Terstruktur**:
    - Hasil investigasi dipecah menjadi kolom-kolom rapi terpisah yang mudah di-*filter*, di-*sort*, dan dianalisis oleh tim *sales/outreach*.
-2. **Penelusuran Media Sosial Resmi Komunitas (Fokus Outreach)**:
-   - Mencari akun Instagram resmi, Facebook Page/Profil resmi, TikTok, Threads, Linktree, dan Website resmi komunitas.
+2. **Penelusuran Media Sosial & Kontak Bio Komunitas**:
+   - Mencari akun Instagram resmi, Facebook Page/Profil resmi, TikTok, Threads, Linktree, dan Website resmi.
+   - **Ekstraksi Kontak Bio Otomatis**: Menarik nomor WhatsApp Admin/CP, nama Narahubung, dan tautan bio (`wa.me`, `linktr.ee`) langsung dari metadata profil komunitas.
 3. **Deteksi Wilayah Terstruktur (`Kota & Provinsi`)**:
    - Menggunakan database hierarki geografis 500+ Kota/Kabupaten ke 38 Provinsi di Indonesia untuk menetapkan domisili komunitas secara presisi.
 4. **Multi-Community Portfolio PIC**:
-   - Melacak inisiatif, project sosial, yayasan, atau komunitas lain yang dikelola oleh PIC yang sama untuk peluang *cross-selling*.
+   - Melacak inisiatif, project sosial, yayasan, atau komunitas lain yang dikelola oleh PIC yang sama untuk peluang *cross-selling* (lengkap dengan akun Instagram masing-masing entitas).
 5. **Pemetaan Induk Organisasi & Chapter Regional (*Federation / Chapter Mapping*)**:
    - Mendeteksi afiliasi induk paguyuban (misal: Paguyuban Honda Jawa Barat, Ikatan Motor Indonesia) dan chapter kota tetangga.
 6. **Pelacakan Agenda & Event Terdekat (*Outreach Timing Trigger*)**:
-   - Memindai agenda aktif komunitas (seperti *Anniversary, Touring, Gathering, Turnamen, Fun Run, Baksos, Expo*) agar penawaran asuransi event masuk tepat waktu.
+   - Memindai agenda aktif komunitas (seperti *Anniversary, Touring, Gathering, Turnamen, Fun Run, Baksos, Expo*) atau agenda event regional sejenis di kota tersebut agar penawaran asuransi event masuk tepat waktu.
 7. **Pencarian Komunitas Sejenis di Daerah (*Lookalike Peer Communities*)**:
    - Menghasilkan 3–6 nama komunitas serupa di kota yang sama **wajib lengkap dengan akun Instagram (`@handle`) dan kontak bio**.
-8. **Validasi Email PIC Cepat (*Fast Async Socials Only*)**:
-   - Mengecek ketersediaan email PIC di platform sosial media utama (Twitter/X, Instagram, Discord, Pinterest, Strava) dalam waktu ~1–2 detik.
 
 ---
 
@@ -51,8 +50,8 @@ Hasil disimpan otomatis ke `<input>_result.xlsx` dengan kolom terpisah:
 | Kolom Hasil | Penjelasan Isi |
 | :--- | :--- |
 | **Wilayah Terdeteksi** | Kota/Kabupaten dan Provinsi (contoh: *Kuningan, Jawa Barat*) |
-| **Sosmed Resmi Komunitas** | Akun resmi IG, FB Page/Profil, Linktree, Web |
-| **Komunitas Lain Milik PIC** | Daftar komunitas/yayasan lain yang dikelola PIC yang sama |
+| **Sosmed Resmi Komunitas** | Akun resmi IG, FB Page/Profil, Linktree, Web (beserta kontak bio / CP) |
+| **Komunitas Lain Milik PIC** | Daftar komunitas/yayasan lain yang dikelola PIC yang sama beserta IG (@) |
 | **Jejaring Chapter & Induk** | Induk paguyuban atau chapter regional terhubung |
 | **Agenda / Event Terdekat** | Pemicu waktu kontak (contoh: *Anniversary ke-5, Touring Gabungan, Fun Run 2026*) |
 | **Komunitas Sejenis di Daerah** | 3–6 komunitas serupa di daerah tersebut beserta akun IG (`@handle`) & WA |
@@ -83,7 +82,7 @@ python community_osint.py data_komunitas.xlsx
 
 **Langkah 1 — Ambil Daftar Query:**
 ```bash
-python community_osint.py data_komunitas.xlsx --search-cache cache.json --dump-queries queries.json --no-live-search --skip-holehe
+python community_osint.py data_komunitas.xlsx --search-cache cache.json --dump-queries queries.json --no-live-search
 ```
 
 **Langkah 2 — Isi Cache (`cache.json`):**

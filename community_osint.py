@@ -576,77 +576,6 @@ def generate_federation_chapter_queries(comm_name: str, niches: list[str], city:
     return qs
 
 
-# --------------------------------------------------------------------------- tools
-
-SOCIAL_HOLEHE_MODULES = [
-    "holehe.modules.social_media.twitter",
-    "holehe.modules.social_media.instagram",
-    "holehe.modules.social_media.discord",
-    "holehe.modules.social_media.snapchat",
-    "holehe.modules.social_media.pinterest",
-    "holehe.modules.social_media.strava",
-    "holehe.modules.social_media.tumblr",
-    "holehe.modules.social_media.vsco",
-    "holehe.modules.social_media.patreon",
-]
-
-_LOADED_SOCIAL_MODULES = []
-
-
-def get_social_modules():
-    global _LOADED_SOCIAL_MODULES
-    if not _LOADED_SOCIAL_MODULES:
-        import importlib
-        for mod_name in SOCIAL_HOLEHE_MODULES:
-            try:
-                _LOADED_SOCIAL_MODULES.append(importlib.import_module(mod_name))
-            except Exception:
-                pass
-    return _LOADED_SOCIAL_MODULES
-
-
-def run_holehe(email: str, timeout: int = 15) -> dict[str, list[str]]:
-    """Fast social-media & creator focused email verification (100% async, ~1-2s)."""
-    try:
-        import trio
-        import httpx
-    except ImportError:
-        try:
-            proc = subprocess.run(["holehe", email], capture_output=True, text=True, timeout=timeout)
-            used = [line[3:].strip() for line in proc.stdout.splitlines() if line.strip().startswith("[+]")]
-            return {"used": used, "rate": [], "error": []}
-        except Exception as e:
-            return {"used": [], "rate": [], "error": [f"{type(e).__name__}: {e}"]}
-
-    modules = get_social_modules()
-    used_platforms = []
-
-    async def _check():
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
-            async def probe(mod):
-                try:
-                    fn_name = mod.__name__.split(".")[-1]
-                    fn = getattr(mod, fn_name)
-                    res = []
-                    await fn(email, client, res)
-                    for item in res:
-                        if item.get("exists"):
-                            used_platforms.append(item.get("name", fn_name))
-                except Exception:
-                    pass
-
-            async with trio.open_nursery() as nursery:
-                for mod in modules:
-                    nursery.start_soon(probe, mod)
-
-    try:
-        trio.run(_check)
-    except Exception as e:
-        return {"used": [], "rate": [], "error": [str(e)]}
-
-    return {"used": sorted(list(set(used_platforms))), "rate": [], "error": []}
-
-
 # --------------------------------------------------------------------------- io
 
 def normalize_community_headers(headers: list[str]) -> dict[str, int]:
@@ -692,7 +621,6 @@ def main() -> int:
     ap.add_argument("--search-cache", default=None, help="Path to JSON search cache")
     ap.add_argument("--dump-queries", default=None, help="Dump missing queries to JSON for batch retrieval")
     ap.add_argument("--no-live-search", action="store_true", help="Disable live DuckDuckGo/Google search")
-    ap.add_argument("--skip-holehe", action="store_true", help="Skip email registration check for PIC")
     ap.add_argument("--delay", type=float, default=4.0, help="Delay between search requests in seconds")
     ap.add_argument("--limit", type=int, default=0, help="Limit number of rows processed")
     args = ap.parse_args()
@@ -764,30 +692,20 @@ def main() -> int:
         print(f"\n[{n}/{len(rows)}] 🏢 Memproses Komunitas: {comm_name} (PIC: {pic_name or '-'})", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 1: Holehe on PIC Email (Socials Only)
-        # -------------------------------------------------------------
-        holehe = {"used": []}
-        if pic_email and not args.skip_holehe:
-            print(f"  [Step 1] Cek Email PIC ({pic_email})...", flush=True)
-            holehe = run_holehe(pic_email)
-            print(f"           Terdaftar di: {', '.join(holehe.get('used', [])) or '-'}", flush=True)
-
-        # -------------------------------------------------------------
-        # STEP 2: Community Official Socials Discovery
+        # STEP 1: Community Official Socials & Bio Contact Discovery
         # -------------------------------------------------------------
         comm_queries = generate_community_queries(comm_name)
-        print(f"  [Step 2] Mencari Sosmed Resmi Komunitas ({len(comm_queries)} query)...", flush=True)
+        print(f"  [Step 1] Mencari Sosmed & Bio Kontak Komunitas ({len(comm_queries)} query)...", flush=True)
         comm_results = []
         for q in comm_queries:
             print(f"           -> Q: {q}", flush=True)
             comm_results += eng.search(q)
 
         socials = extract_community_socials(comm_results, comm_name)
-
         main_handle = socials.get("instagram", {}).get("handle", "")
 
         # -------------------------------------------------------------
-        # STEP 3: PIC Multi-Organization & Domicile Discovery
+        # STEP 2: PIC Multi-Organization & Domicile Discovery
         # -------------------------------------------------------------
         pic_results = []
         pic_other_comms = []
