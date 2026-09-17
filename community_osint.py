@@ -4,11 +4,15 @@
 Input Format (Excel / CSV):
   Nama Komunitas | Deskripsi Komunitas | Nama PIC Komunitas | Email PIC | Nomor HP PIC
 
-Outputs:
-  1. Sosmed Komunitas (Instagram, Facebook Group/Page, TikTok, Threads, Linktree/Web)
-  2. Daerah / Wilayah Komunitas: Format Terstruktur [Kota/Kabupaten, Provinsi]
-  3. Komunitas Lain yang Dikelola oleh PIC yang Sama (Multi-community mapping)
-  4. Komunitas Sejenis di Daerah Tersebut (Peer / Competitor communities)
+Structured Excel Output Columns:
+  1. Wilayah Terdeteksi (Kota & Provinsi)
+  2. Sosmed Resmi Komunitas (IG, FB Page, Linktree, Web)
+  3. Komunitas Lain Milik PIC (Multi-community portfolio)
+  4. Jejaring Chapter & Induk Paguyuban (Federation / Chapter network)
+  5. Agenda / Event Terdekat (Outreach Timing Trigger: Anniversary, Touring, Cup, Gathering)
+  6. Komunitas Sejenis di Daerah (Beserta IG @handle & Kontak CP/WA)
+  7. Kontak Siap Hubungi (WA, DM IG/FB, Email)
+  8. Community Intelligence Summary (Catatan ringkas lengkap)
 
 Usage:
   python3 community_osint.py input.xlsx [--search-cache cache.json] [--dump-queries q.json] [--no-live-search]
@@ -38,6 +42,8 @@ except ImportError:
         "medan": ("Medan", "Sumatera Utara"),
         "makassar": ("Makassar", "Sulawesi Selatan"),
         "bali": ("Denpasar", "Bali"),
+        "kuningan": ("Kuningan", "Jawa Barat"),
+        "cirebon": ("Cirebon", "Jawa Barat"),
     }
 
 UA = (
@@ -46,15 +52,16 @@ UA = (
 )
 
 COMMUNITY_NICHE_KEYWORDS = [
+    # Olahraga & Hobi
+    "tennis", "tenis", "lari", "running", "marathon", "sepeda", "cycling", "gowes",
+    "motor", "motoran", "touring", "riding", "otomotif", "kopi", "coffee", "barista",
+    "fotografi", "photography", "hiking", "gunung", "backpacker", "traveler", "kuliner",
+    "badminton", "bulutangkis", "futsal", "basket", "gym", "fitness", "yoga", "diving", "surfing",
     # Event & Hiburan
     "event", "organizer", "eo", "wedding", "mice", "gathering", "party", "hiburan", "entertainment", "pameran", "expo",
     # Lingkungan & Sosial
     "lingkungan", "sampah", "plastik", "hutan", "relawan", "volunteer", "baksos", "charity",
     "sosial", "donasi", "peduli", "kemanusiaan", "pemberdayaan", "yayasan",
-    # Olahraga & Hobi
-    "lari", "running", "marathon", "sepeda", "cycling", "gowes", "motor", "motoran", "touring",
-    "riding", "otomotif", "kopi", "coffee", "barista", "fotografi", "photography", "hiking", "gunung",
-    "backpacker", "traveler", "kuliner", "makanan", "buku", "literasi",
     # Teknologi & Bisnis
     "programming", "developer", "coding", "python", "javascript", "golang", "flutter",
     "devops", "cloud", "data science", "ai", "artificial intelligence", "cybersecurity",
@@ -191,7 +198,6 @@ def extract_community_socials(results: list[tuple[str, str]], comm_name: str) ->
             if f_match:
                 sig.append(f_match.group(1).strip())
 
-            # Bio Contact extraction
             contacts = extract_bio_contact_signals(title)
             if contacts:
                 sig.extend(contacts)
@@ -220,23 +226,15 @@ def detect_community_region_structured(
     pic_texts: list[str] | None = None,
     phone: str = ""
 ) -> tuple[str, str]:
-    """Identify City/Regency and Province in a structured hierarchy (Kota, Provinsi).
-    
-    Priority:
-      1. Direct mentions in Community bio / description / search results.
-      2. Mentions in PIC's personal profile / domicile ("Lives in Central Jakarta", "Bandung", etc.).
-      3. Phone HLR prefix indication.
-    """
+    """Identify City/Regency and Province in a structured hierarchy (Kota, Provinsi)."""
     scores: dict[str, int] = {}
 
     def score_corpus(texts: list[str], multiplier: int = 1):
         combined = " ".join(texts).lower()
-        # Check longest matching city keys first
         for key in sorted(CITY_TO_PROVINCE_MAP.keys(), key=len, reverse=True):
             pat = rf"\b{re.escape(key)}\b"
             matches = re.findall(pat, combined)
             if matches:
-                # Add score weighted by matches and multiplier
                 scores[key] = scores.get(key, 0) + (len(matches) * multiplier)
 
     # 1. Score community text (highest weight)
@@ -257,7 +255,7 @@ def detect_community_region_structured(
     if phone:
         p_clean = re.sub(r"[^\d]", "", phone)
         if p_clean.startswith("021") or p_clean.startswith("6221"):
-            return ("Jabodetabek", "DKI Jakarta / Jawa Barat / Banten")
+            return ("Jakarta", "DKI Jakarta")
         elif p_clean.startswith("022") or p_clean.startswith("6222"):
             return ("Bandung", "Jawa Barat")
         elif p_clean.startswith("024") or p_clean.startswith("6224"):
@@ -283,6 +281,10 @@ def extract_community_niche(name: str, desc: str) -> list[str]:
     for kw in COMMUNITY_NICHE_KEYWORDS:
         if re.search(rf"\b{re.escape(kw)}\b", combined, re.I):
             found.append(kw)
+    if not found:
+        # Fallback to description words
+        words = [w for w in re.findall(r"\b[a-z]{4,}\b", combined) if w not in ("komunitas", "group", "official", "indonesia")]
+        found = words[:2]
     return found[:4]
 
 
@@ -313,7 +315,7 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
 
 
 def extract_similar_communities(results: list[tuple[str, str]], current_comm: str) -> list[str]:
-    """Extract names, handles, and contacts of peer/similar communities (including grassroots/small clubs)."""
+    """Extract names, handles, and contacts of peer/similar communities with direct Instagram handles."""
     discovered = []
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
@@ -328,13 +330,11 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
     )
 
     for url, title in results:
-        # Check if url contains IG/FB handle
         ig_handle = ""
         ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
         if ig_m and ig_m.group(1).lower() not in RESERVED:
-            ig_handle = f"@{ig_m.group(1)}"
+            ig_handle = f" (@{ig_m.group(1)})"
 
-        # Extract contacts from title/bio snippet
         contacts = extract_bio_contact_signals(title)
         contact_suffix = f" [{', '.join(contacts)}]" if contacts else ""
 
@@ -347,16 +347,73 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
                 if current_clean and (current_clean in cand_clean or cand_clean in current_clean):
                     continue
                 seen.add(cand.lower())
-
-                label = cand
-                if ig_handle:
-                    label += f" ({ig_handle})"
-                if contact_suffix:
-                    label += f"{contact_suffix}"
-
-                discovered.append(label)
+                discovered.append(f"{cand}{ig_handle}{contact_suffix}")
 
     return discovered[:6]
+
+
+def extract_chapter_federation_network(
+    results: list[tuple[str, str]],
+    comm_name: str,
+    city: str,
+    province: str
+) -> list[str]:
+    """Discover federation affiliations (Paguyuban/Induk) and sibling regional chapters."""
+    discovered = []
+    seen = set()
+    comm_clean = re.sub(r"[^a-zA-Z0-9]+", "", comm_name.lower())
+
+    fed_pat = re.compile(
+        r"\b((?:Paguyuban|Ikatan|Asosiasi|Federasi|Aliansi|Pengda|Pengcab|Korwil|Forum Komunikasi|Induk)\s+[A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3})\b",
+        re.I
+    )
+    chapter_pat = re.compile(
+        r"\b([A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2}\s+(?:Chapter\s+[A-Z][\w&'\-]+|Korwil\s+[A-Z][\w&'\-]+))\b",
+        re.I
+    )
+
+    for url, title in results:
+        ig_handle = ""
+        ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
+        if ig_m and ig_m.group(1).lower() not in RESERVED:
+            ig_handle = f" (@{ig_m.group(1)})"
+
+        for p in (fed_pat, chapter_pat):
+            for m in p.finditer(title):
+                cand = m.group(1).strip(" -–—|·,:")
+                cand_clean = re.sub(r"[^a-zA-Z0-9]+", "", cand.lower())
+                if len(cand) < 6 or cand.lower() in seen:
+                    continue
+                if comm_clean in cand_clean and len(cand_clean) - len(comm_clean) < 3:
+                    continue
+                seen.add(cand.lower())
+                discovered.append(f"{cand}{ig_handle}")
+
+    return discovered[:5]
+
+
+def extract_event_agenda_triggers(results: list[tuple[str, str]]) -> list[str]:
+    """Detect upcoming, recurring, or planned community events for outreach timing."""
+    triggers = []
+    seen = set()
+
+    event_patterns = [
+        re.compile(r"\b((?:Anniversary|Deklarasi|Milad|HUT)\s+(?:ke-?\d+|\d+th|\d+)?(?:\s+[A-Z][\w&'\-]+){0,2})\b", re.I),
+        re.compile(r"\b((?:Touring|Tour de|Sunmori|Night Ride|Rolling Thunder|Kopdargab|Kopdar Akbar|Gathering|Family Gathering)\s+[A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2})\b", re.I),
+        re.compile(r"\b((?:Turnamen|Cup|Championship|Liga|Sparring|Fun Match|Festival|Fun Run|Marathon|Exhibition|Expo|Baksos|Bakti Sosial)\s+[A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2})\b", re.I),
+    ]
+
+    for url, title in results:
+        for p in event_patterns:
+            for m in p.finditer(title):
+                cand = m.group(1).strip(" -–—|·,:")
+                cand_clean = cand.lower()
+                if len(cand) < 6 or cand_clean in seen:
+                    continue
+                seen.add(cand_clean)
+                triggers.append(cand)
+
+    return triggers[:4]
 
 
 # --------------------------------------------------------------------------- query generators
@@ -421,7 +478,29 @@ def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> l
             add(f'daftar komunitas {n} {city}')
         if province and province != "Cakupan Nasional":
             add(f'site:instagram.com "paguyuban {n}" "{province}"')
-            add(f'komunitas {n} "{province}"')
+            add(f'komunitas {n}" "{province}"')
+
+    return qs
+
+
+def generate_federation_chapter_queries(comm_name: str, niches: list[str], city: str, province: str) -> list[str]:
+    """Generate queries for finding parent federation/paguyuban and regional chapters."""
+    qs = []
+    seen = set()
+
+    def add(q: str):
+        q = q.strip()
+        if q and q not in seen:
+            seen.add(q)
+            qs.append(q)
+
+    if niches:
+        n = niches[0]
+        if province and province != "Cakupan Nasional":
+            add(f'site:instagram.com "paguyuban {n}" "{province}"')
+            add(f'site:instagram.com "ikatan {n}" "{province}"')
+        if city and city != "Indonesia":
+            add(f'site:instagram.com "{comm_name}" chapter OR korwil OR paguyuban')
 
     return qs
 
@@ -567,20 +646,40 @@ def main() -> int:
                        live=not args.no_live_search, delay=args.delay)
 
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font
+    from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()
     ws = wb.active or wb.create_sheet()
     ws.title = "community_osint_result"
 
-    out_headers = headers + (
-        [] if "community intelligence" in [h.lower() for h in headers] else ["Community Intelligence"]
-    )
+    # Define Structured Output Columns
+    structured_new_cols = [
+        "Wilayah Terdeteksi",
+        "Sosmed Resmi Komunitas",
+        "Komunitas Lain Milik PIC",
+        "Jejaring Chapter & Induk",
+        "Agenda / Event Terdekat",
+        "Komunitas Sejenis di Daerah",
+        "Kontak Siap Hubungi",
+        "Community Intelligence Summary"
+    ]
+
+    out_headers = list(headers)
+    for col in structured_new_cols:
+        if col.lower() not in [h.lower() for h in headers]:
+            out_headers.append(col)
+
     ws.append(out_headers)
+    header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+
     for cell in ws[1]:
-        cell.font = Font(bold=True)
-    col_intel_idx = len(out_headers) - 1
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    col_map = {col: out_headers.index(col) for col in structured_new_cols}
 
     for n, row in enumerate(rows, 1):
         row = list(row) + [""] * (len(headers) - len(row))
@@ -596,7 +695,7 @@ def main() -> int:
         print(f"\n[{n}/{len(rows)}] 🏢 Memproses Komunitas: {comm_name} (PIC: {pic_name or '-'})", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 1: Holehe on PIC Email
+        # STEP 1: Holehe on PIC Email (Socials Only)
         # -------------------------------------------------------------
         holehe = {"used": []}
         if pic_email and not args.skip_holehe:
@@ -640,13 +739,25 @@ def main() -> int:
         print(f"  [Step 4] Wilayah Terdeteksi: {region_display}", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 5: Peer / Similar Communities in the Specific Region
+        # STEP 5: Chapter, Federation & Event Trigger Discovery
         # -------------------------------------------------------------
         niches = extract_community_niche(comm_name, desc)
+        fed_queries = generate_federation_chapter_queries(comm_name, niches, city, province)
+        fed_results = []
+        for q in fed_queries:
+            fed_results += eng.search(q)
+
+        all_pool_results = comm_results + fed_results
+        federation_network = extract_chapter_federation_network(all_pool_results, comm_name, city, province)
+        event_triggers = extract_event_agenda_triggers(all_pool_results)
+
+        # -------------------------------------------------------------
+        # STEP 6: Peer / Similar Communities in the Specific Region
+        # -------------------------------------------------------------
         similar_comms = []
         if niches:
             peer_queries = generate_peer_comm_queries(niches, city, province)
-            print(f"  [Step 5] Mencari Komunitas Sejenis di {region_display} (Niche: {', '.join(niches)})...", flush=True)
+            print(f"  [Step 6] Mencari Komunitas Sejenis di {region_display} (Niche: {', '.join(niches)})...", flush=True)
             peer_results = []
             for q in peer_queries:
                 print(f"           -> Q: {q}", flush=True)
@@ -655,11 +766,9 @@ def main() -> int:
             print(f"           Komunitas Sejenis: {', '.join(similar_comms) if similar_comms else '-'}", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 6: Compose Community Intelligence Summary Notes
+        # STEP 7: Format Structured Data Values for Output
         # -------------------------------------------------------------
-        lines: list[str] = []
-
-        # 1. Official Community Social Media
+        # 1. Official Social Media
         comm_socmed_list = []
         for plat, label in (
             ("instagram", "IG"), ("facebook_page", "FB Page / Profil"),
@@ -670,49 +779,76 @@ def main() -> int:
                 d = socials[plat]
                 sig_str = f" ({', '.join(d['signals'])})" if d.get("signals") else ""
                 comm_socmed_list.append(f"{label}: {d['url']}{sig_str}")
+        val_socmed = "\n".join(comm_socmed_list) if comm_socmed_list else "Belum ditemukan publik"
 
-        lines.append("Sosmed Komunitas: " + ("; ".join(comm_socmed_list) if comm_socmed_list else "belum ditemukan publik"))
+        # 2. Other Communities of PIC
+        val_other_pic = "\n".join(pic_other_comms) if pic_other_comms else "Tidak terdeteksi / hanya komunitas ini"
 
-        # 2. Region / Coverage Area (Structured: Kota, Provinsi)
-        lines.append(f"Daerah / Wilayah: {region_display}")
+        # 3. Chapter & Federation Network
+        val_federation = "\n".join(federation_network) if federation_network else "Independen / belum terindeks induk paguyuban"
 
-        # 3. Other Communities Managed by the Same PIC
-        if pic_other_comms:
-            lines.append("Komunitas Lain Kelolaan PIC: " + ", ".join(pic_other_comms))
-        else:
-            lines.append("Komunitas Lain Kelolaan PIC: Tidak terdeteksi / hanya komunitas ini")
+        # 4. Event / Agenda Triggers
+        val_events = "\n".join(event_triggers) if event_triggers else "Tidak terdeteksi agenda khusus publik dalam waktu dekat"
 
-        # 4. Similar / Peer Communities in Region
-        if similar_comms:
-            lines.append(f"Komunitas Sejenis di {city}: " + ", ".join(similar_comms))
-        else:
-            lines.append(f"Komunitas Sejenis di {city}: Belum terdeteksi di direktori publik")
+        # 5. Similar Peer Communities
+        val_peers = "\n".join(similar_comms) if similar_comms else f"Belum terdeteksi direktori komunitas sejenis di {city}"
 
-        # 5. PIC Contact & Verification
-        pic_details = []
+        # 6. Direct Outreach Contacts
+        contact_items = []
         if pic_name:
-            pic_details.append(f"Nama: {pic_name}")
+            contact_items.append(f"PIC: {pic_name}")
         if pic_phone:
-            pic_details.append(f"No HP/WA: {pic_phone}")
+            contact_items.append(f"WA/Telp: {pic_phone}")
         if pic_email:
-            pic_details.append(f"Email: {pic_email}")
-            if holehe.get("used"):
-                pic_details.append(f"Platform Aktif: {', '.join(h.replace('.com', '') for h in holehe['used'])}")
+            contact_items.append(f"Email: {pic_email}")
+        if holehe.get("used"):
+            contact_items.append(f"Platform Aktif: {', '.join(h.replace('.com', '') for h in holehe['used'])}")
+        val_contacts = " | ".join(contact_items) if contact_items else "Kontak belum teridentifikasi"
 
-        if pic_details:
-            lines.append("Profil PIC: " + " | ".join(pic_details))
+        # 7. Summary Note
+        summary_lines = [
+            f"Sosmed Komunitas: {'; '.join(comm_socmed_list) if comm_socmed_list else '-'}",
+            f"Daerah / Wilayah: {region_display}",
+            f"Komunitas Lain Kelolaan PIC: {', '.join(pic_other_comms) if pic_other_comms else '-'}",
+            f"Jejaring Chapter & Induk: {', '.join(federation_network) if federation_network else '-'}",
+            f"Agenda Terdekat: {', '.join(event_triggers) if event_triggers else '-'}",
+            f"Komunitas Sejenis di {city}: {', '.join(similar_comms) if similar_comms else '-'}",
+            f"Profil PIC: {val_contacts}"
+        ]
+        val_summary = "\n".join(summary_lines)
 
-        intel_note = "\n".join(lines)
-
+        # Assemble Output Row
         out_row = [""] * len(out_headers)
         for i, v in enumerate(row):
             out_row[i] = str(v)
-        out_row[col_intel_idx] = intel_note
+
+        out_row[col_map["Wilayah Terdeteksi"]] = region_display
+        out_row[col_map["Sosmed Resmi Komunitas"]] = val_socmed
+        out_row[col_map["Komunitas Lain Milik PIC"]] = val_other_pic
+        out_row[col_map["Jejaring Chapter & Induk"]] = val_federation
+        out_row[col_map["Agenda / Event Terdekat"]] = val_events
+        out_row[col_map["Komunitas Sejenis di Daerah"]] = val_peers
+        out_row[col_map["Kontak Siap Hubungi"]] = val_contacts
+        out_row[col_map["Community Intelligence Summary"]] = val_summary
+
         ws.append(out_row)
 
-    # Format Excel width & alignment
+    # Format Column Widths & Alignment
+    col_widths = {
+        "Wilayah Terdeteksi": 25,
+        "Sosmed Resmi Komunitas": 40,
+        "Komunitas Lain Milik PIC": 30,
+        "Jejaring Chapter & Induk": 32,
+        "Agenda / Event Terdekat": 30,
+        "Komunitas Sejenis di Daerah": 45,
+        "Kontak Siap Hubungi": 35,
+        "Community Intelligence Summary": 60,
+    }
+
     for i, h in enumerate(out_headers, 1):
-        ws.column_dimensions[get_column_letter(i)].width = 90 if i - 1 == col_intel_idx else 25
+        letter = get_column_letter(i)
+        ws.column_dimensions[letter].width = col_widths.get(h, 25)
+
     for r in ws.iter_rows(min_row=2):
         for c in r:
             c.alignment = Alignment(vertical="top", wrap_text=True)

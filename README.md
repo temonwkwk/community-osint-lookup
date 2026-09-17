@@ -1,29 +1,33 @@
 # Community OSINT & Multi-Community Intelligence (`community_osint.py`)
 
-Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) untuk memetakan **ekosistem komunitas, jangkauan daerah/wilayah, profil PIC, serta melacak komunitas lain yang dikelola oleh PIC yang sama** berdasarkan data nama komunitas, deskripsi, dan kontak PIC dalam jumlah banyak (*bulk processing* via file Excel/CSV).
+Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) berbasis Python yang dioptimalkan khusus untuk **Pemetaan Ekosistem Komunitas, Multi-Komunitas PIC, Penetrasi Chapter Regional, dan Prospek Komunitas Sejenis di Daerah** berdasarkan data Excel/CSV.
 
 ---
 
-## 🚀 Fitur Utama
+## 🎯 Fitur & Alur Utama (Outreach & Insurance B2B Focused)
 
-1. **Penelusuran Media Sosial & Web Resmi Komunitas**:
-   - Mencari akun resmi Instagram, Facebook Group/Page, TikTok, Threads, Linktree, dan Website resmi komunitas (beserta jumlah pengikut / anggota).
-2. **Deteksi Otomatis Daerah / Wilayah Komunitas**:
-   - Mengekstrak kota/wilayah cakupan komunitas (contoh: *Jakarta, Bandung, Yogyakarta, Surabaya, Denpasar, Medan, dll.* atau *Cakupan Nasional*) dari bio profil dan deskripsi.
-3. **Multi-Community Mapping (Komunitas Lain Milik PIC)**:
-   - Mengidentifikasi inisiatif, project sosial, yayasan, atau komunitas lain yang didirikan, dipimpin, atau diinisiasi oleh PIC yang sama.
-4. **Pemetaan Komunitas Sejenis di Daerah Tersebut (*Peer Communities*)**:
-   - Mencari 3–5 komunitas serupa di kota yang sama berdasarkan topik/niche komunitas (misal: *lingkungan, kopi, lari, otomotif, tech, parenting*) untuk kebutuhan kolaborasi atau ekspansi.
-5. **Verifikasi Kontak PIC**:
-   - Menyatukan nomor HP/WhatsApp dan status email terdaftar via Holehe (Office365, Spotify, Twitter/X, dll).
-6. **Output Terstruktur Tanpa Merusak Kolom Asli**:
-   - Menghasilkan file baru `<input>_result.xlsx` dengan satu kolom ringkasan `Community Intelligence`.
+1. **Pemisahan Kolom Excel Terstruktur**:
+   - Hasil investigasi tidak lagi ditumpuk di satu kolom catatan, melainkan otomatis dipecah menjadi kolom-kolom terpisah yang mudah di-*filter*, di-*sort*, dan dianalisis oleh tim *sales/outreach*.
+2. **Penelusuran Media Sosial Resmi Komunitas (Fokus Outreach)**:
+   - Mencari akun Instagram resmi, Facebook Page/Profil resmi, TikTok, Threads, Linktree, dan Website resmi komunitas.
+3. **Deteksi Wilayah Terstruktur (`Kota & Provinsi`)**:
+   - Menggunakan database hierarki geografis 500+ Kota/Kabupaten ke 38 Provinsi di Indonesia untuk menetapkan domisili komunitas secara presisi.
+4. **Multi-Community Portfolio PIC**:
+   - Melacak inisiatif, project sosial, yayasan, atau komunitas lain yang dikelola oleh PIC yang sama untuk peluang *cross-selling*.
+5. **Pemetaan Induk Organisasi & Chapter Regional (*Federation / Chapter Mapping*)**:
+   - Mendeteksi afiliasi induk paguyuban (misal: Paguyuban Honda Jawa Barat, Ikatan Motor Indonesia) dan chapter kota tetangga.
+6. **Pelacakan Agenda & Event Terdekat (*Outreach Timing Trigger*)**:
+   - Memindai agenda aktif komunitas (seperti *Anniversary, Touring, Gathering, Turnamen, Fun Run, Baksos, Expo*) agar penawaran asuransi event masuk tepat waktu.
+7. **Pencarian Komunitas Sejenis di Daerah (*Lookalike Peer Communities*)**:
+   - Menghasilkan 3–6 nama komunitas serupa di kota yang sama **wajib lengkap dengan akun Instagram (`@handle`) dan kontak bio**.
+8. **Validasi Email PIC Cepat (*Fast Async Socials Only*)**:
+   - Mengecek ketersediaan email PIC di platform sosial media utama (Twitter/X, Instagram, Discord, Pinterest, Strava) dalam waktu ~1–2 detik tanpa mengecek situs non-relevan.
 
 ---
 
 ## 📋 Format File Input
 
-File input dapat berupa `.xlsx` atau `.csv`. Header kolom akan dideteksi secara otomatis (case-insensitive):
+File input dapat berupa `.xlsx` atau `.csv`. Header kolom otomatis terdeteksi (case-insensitive):
 - **Nama Komunitas**: `Nama Komunitas`, `Komunitas`, `Community`
 - **Deskripsi Komunitas**: `Deskripsi Komunitas`, `Deskripsi`, `Kegiatan`, `About`
 - **Nama PIC**: `Nama PIC Komunitas`, `PIC`, `Ketua`, `Founder`, `Leader`
@@ -34,9 +38,26 @@ Contoh:
 
 | Nama Komunitas | Deskripsi Komunitas | Nama PIC Komunitas | Email PIC | Nomor HP PIC |
 | :--- | :--- | :--- | :--- | :--- |
-| Example Tech Community | Komunitas praktisi teknologi dan arsitektur cloud di Jakarta | PIC Example A | pic_a@example.com | 081200000001 |
-| Example Green Movement | Gerakan relawan bank sampah dan aksi bersih lingkungan di Bandung | PIC Example B | pic_b@example.com | 085700000002 |
-| Example Runners Club | Komunitas lari sehat dan gathering pelari se-Yogyakarta | PIC Example C | pic_c@example.com | 081300000003 |
+| Example Riders Club | Komunitas Motor dan Touring Regional | PIC Example A | pic_a@example.com | 081200000001 |
+| Example Tennis Community | Komunitas Tenis dan Sparring Mingguan | PIC Example B | pic_b@example.com | 085700000002 |
+| Example Creative EO | Event Organizer dan Festival Musik | PIC Example C | pic_c@example.com | 081300000003 |
+
+---
+
+## 📊 Format Kolom Output Excel (`*_result.xlsx`)
+
+Hasil disimpan otomatis ke `<input>_result.xlsx` dengan kolom terpisah:
+
+| Kolom Hasil | Penjelasan Isi |
+| :--- | :--- |
+| **Wilayah Terdeteksi** | Kota/Kabupaten dan Provinsi (contoh: *Kuningan, Jawa Barat*) |
+| **Sosmed Resmi Komunitas** | Akun resmi IG, FB Page/Profil, Linktree, Web |
+| **Komunitas Lain Milik PIC** | Daftar komunitas/yayasan lain yang dikelola PIC yang sama |
+| **Jejaring Chapter & Induk** | Induk paguyuban atau chapter regional terhubung |
+| **Agenda / Event Terdekat** | Pemicu waktu kontak (contoh: *Anniversary ke-5, Touring Gabungan, Fun Run 2026*) |
+| **Komunitas Sejenis di Daerah** | 3–6 komunitas serupa di daerah tersebut beserta akun IG (`@handle`) & WA |
+| **Kontak Siap Hubungi** | Ringkasan Nama PIC, WhatsApp, Email, dan platform sosmed aktif |
+| **Community Intelligence Summary** | Ringkasan lengkap seluruh poin |
 
 ---
 
@@ -46,83 +67,41 @@ Pastikan menggunakan Python 3.10+ (disarankan Python 3.12).
 
 ### 1. Instalasi
 ```bash
-# Clone repository
 git clone https://github.com/temonwkwk/community-osint-lookup.git
 cd community-osint-lookup
-
-# Install dependency
 pip install -r requirements.txt
 ```
 
 ---
 
-### 2. Mode Standar (Live Search)
+### 2. Mode Eksekusi Langsung
 ```bash
-python community_osint.py input.xlsx
+python community_osint.py data_komunitas.xlsx
 ```
-Hasil akan disimpan otomatis ke `input_result.xlsx`.
 
 ---
 
-### 3. Mode 2-Pass Cache (Direkomendasikan untuk Data Besar)
+### 3. Mode 2-Pass Cache (Direkomendasikan untuk Data Ratusan Baris)
 
-Untuk menghindari rate-limit mesin pencari saat memproses ratusan komunitas:
-
-**Langkah 1 — Dump Daftar Query:**
+**Langkah 1 — Ambil Daftar Query:**
 ```bash
-python community_osint.py input.xlsx --search-cache cache.json --dump-queries queries.json --no-live-search --skip-holehe
+python community_osint.py data_komunitas.xlsx --search-cache cache.json --dump-queries queries.json --no-live-search --skip-holehe
 ```
 
 **Langkah 2 — Isi Cache (`cache.json`):**
-Ambil data hasil pencarian ke `cache.json` menggunakan search engine / API.
+Ambil hasil pencarian untuk `queries.json` ke dalam `cache.json`.
 
 **Langkah 3 — Eksekusi Analisis Lengkap:**
 ```bash
-python community_osint.py input.xlsx --search-cache cache.json
-```
-
----
-
-## 📊 Format Output Kolom `Community Intelligence`
-
-```text
-Sosmed Komunitas: IG: https://www.instagram.com/example_community/ (5.2k followers); FB Group: https://facebook.com/groups/example_comm; Linktree: https://linktr.ee/example_community
-Daerah / Wilayah: Jakarta Pusat, DKI Jakarta
-Komunitas Lain Kelolaan PIC: Example Developer Forum, Yayasan Inovasi Digital
-Komunitas Sejenis di Jakarta Pusat: Jakarta Tech Group, Python Developers Forum, Cloud & Code Community
-Profil PIC: Nama: PIC Example A | No HP/WA: 081200000001 | Email: pic_a@example.com | Platform Aktif: office365, spotify, twitter
-```
-
----
-
-## ⚙️ Opsi Command Line
-
-```text
-usage: community_osint.py [-h] [--sheet SHEET] [--search-cache SEARCH_CACHE]
-                          [--dump-queries DUMP_QUERIES] [--no-live-search]
-                          [--skip-holehe] [--delay DELAY] [--limit LIMIT]
-                          input
-
-positional arguments:
-  input                 File input (.xlsx atau .csv)
-
-options:
-  -h, --help            Tampilkan bantuan
-  --sheet SHEET         Nama sheet pada file Excel
-  --search-cache PATH   Gunakan cache file JSON untuk hasil pencarian
-  --dump-queries PATH   Simpan query pencarian ke file JSON
-  --no-live-search      Nonaktifkan live HTTP search
-  --skip-holehe         Lewati pengecekan email PIC dengan Holehe
-  --delay DELAY         Delay jeda antar request (detik)
-  --limit LIMIT         Batasi jumlah baris yang diproses
+python community_osint.py data_komunitas.xlsx --search-cache cache.json
 ```
 
 ---
 
 ## 🔒 Privasi & Keamanan Data
 
-- Repository ini **tidak menyimpan data pribadi atau hasil investigasi nyata**.
-- Seluruh file data (`target*.xlsx`, `cache.json`, `queries.json`) otomatis diabaikan oleh `.gitignore`.
+- Seluruh data pribadi, nomor kontak, dan file target diamankan otomatis oleh `.gitignore`.
+- Tidak ada data yang diunggah ke server pihak ketiga.
 
 ---
 
