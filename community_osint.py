@@ -661,8 +661,6 @@ def main() -> int:
         "Jejaring Chapter & Induk",
         "Agenda / Event Terdekat",
         "Komunitas Sejenis di Daerah",
-        "Kontak Siap Hubungi",
-        "Community Intelligence Summary"
     ]
 
     out_headers = list(headers)
@@ -793,30 +791,6 @@ def main() -> int:
         # 5. Similar Peer Communities
         val_peers = "\n".join(similar_comms) if similar_comms else f"Belum terdeteksi direktori komunitas sejenis di {city}"
 
-        # 6. Direct Outreach Contacts
-        contact_items = []
-        if pic_name:
-            contact_items.append(f"PIC: {pic_name}")
-        if pic_phone:
-            contact_items.append(f"WA/Telp: {pic_phone}")
-        if pic_email:
-            contact_items.append(f"Email: {pic_email}")
-        if holehe.get("used"):
-            contact_items.append(f"Platform Aktif: {', '.join(h.replace('.com', '') for h in holehe['used'])}")
-        val_contacts = " | ".join(contact_items) if contact_items else "Kontak belum teridentifikasi"
-
-        # 7. Summary Note
-        summary_lines = [
-            f"Sosmed Komunitas: {'; '.join(comm_socmed_list) if comm_socmed_list else '-'}",
-            f"Daerah / Wilayah: {region_display}",
-            f"Komunitas Lain Kelolaan PIC: {', '.join(pic_other_comms) if pic_other_comms else '-'}",
-            f"Jejaring Chapter & Induk: {', '.join(federation_network) if federation_network else '-'}",
-            f"Agenda Terdekat: {', '.join(event_triggers) if event_triggers else '-'}",
-            f"Komunitas Sejenis di {city}: {', '.join(similar_comms) if similar_comms else '-'}",
-            f"Profil PIC: {val_contacts}"
-        ]
-        val_summary = "\n".join(summary_lines)
-
         # Assemble Output Row
         out_row = [""] * len(out_headers)
         for i, v in enumerate(row):
@@ -828,8 +802,6 @@ def main() -> int:
         out_row[col_map["Jejaring Chapter & Induk"]] = val_federation
         out_row[col_map["Agenda / Event Terdekat"]] = val_events
         out_row[col_map["Komunitas Sejenis di Daerah"]] = val_peers
-        out_row[col_map["Kontak Siap Hubungi"]] = val_contacts
-        out_row[col_map["Community Intelligence Summary"]] = val_summary
 
         ws.append(out_row)
 
@@ -841,8 +813,6 @@ def main() -> int:
         "Jejaring Chapter & Induk": 32,
         "Agenda / Event Terdekat": 30,
         "Komunitas Sejenis di Daerah": 45,
-        "Kontak Siap Hubungi": 35,
-        "Community Intelligence Summary": 60,
     }
 
     for i, h in enumerate(out_headers, 1):

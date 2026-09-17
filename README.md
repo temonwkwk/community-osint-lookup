@@ -7,7 +7,7 @@ Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) berbasis Python
 ## 🎯 Fitur & Alur Utama (Outreach & Insurance B2B Focused)
 
 1. **Pemisahan Kolom Excel Terstruktur**:
-   - Hasil investigasi tidak lagi ditumpuk di satu kolom catatan, melainkan otomatis dipecah menjadi kolom-kolom terpisah yang mudah di-*filter*, di-*sort*, dan dianalisis oleh tim *sales/outreach*.
+   - Hasil investigasi dipecah menjadi kolom-kolom rapi terpisah yang mudah di-*filter*, di-*sort*, dan dianalisis oleh tim *sales/outreach*.
 2. **Penelusuran Media Sosial Resmi Komunitas (Fokus Outreach)**:
    - Mencari akun Instagram resmi, Facebook Page/Profil resmi, TikTok, Threads, Linktree, dan Website resmi komunitas.
 3. **Deteksi Wilayah Terstruktur (`Kota & Provinsi`)**:
@@ -21,7 +21,7 @@ Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) berbasis Python
 7. **Pencarian Komunitas Sejenis di Daerah (*Lookalike Peer Communities*)**:
    - Menghasilkan 3–6 nama komunitas serupa di kota yang sama **wajib lengkap dengan akun Instagram (`@handle`) dan kontak bio**.
 8. **Validasi Email PIC Cepat (*Fast Async Socials Only*)**:
-   - Mengecek ketersediaan email PIC di platform sosial media utama (Twitter/X, Instagram, Discord, Pinterest, Strava) dalam waktu ~1–2 detik tanpa mengecek situs non-relevan.
+   - Mengecek ketersediaan email PIC di platform sosial media utama (Twitter/X, Instagram, Discord, Pinterest, Strava) dalam waktu ~1–2 detik.
 
 ---
 
@@ -56,8 +56,6 @@ Hasil disimpan otomatis ke `<input>_result.xlsx` dengan kolom terpisah:
 | **Jejaring Chapter & Induk** | Induk paguyuban atau chapter regional terhubung |
 | **Agenda / Event Terdekat** | Pemicu waktu kontak (contoh: *Anniversary ke-5, Touring Gabungan, Fun Run 2026*) |
 | **Komunitas Sejenis di Daerah** | 3–6 komunitas serupa di daerah tersebut beserta akun IG (`@handle`) & WA |
-| **Kontak Siap Hubungi** | Ringkasan Nama PIC, WhatsApp, Email, dan platform sosmed aktif |
-| **Community Intelligence Summary** | Ringkasan lengkap seluruh poin |
 
 ---
 
