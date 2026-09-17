@@ -34,9 +34,9 @@ Contoh:
 
 | Nama Komunitas | Deskripsi Komunitas | Nama PIC Komunitas | Email PIC | Nomor HP PIC |
 | :--- | :--- | :--- | :--- | :--- |
-| Indonesian Cloud Community | Komunitas praktisi cloud computing & DevOps di Jakarta | Faisal Reza | faisal@gmail.com | 08123456789 |
-| Peduli Sampah Jogja | Gerakan relawan bank sampah & aksi bersih sungai | Yogi Atmaja | ogijogjaaa@gmail.com | 08571234567 |
-| Bandung Runner Club | Komunitas lari sehat & marathon gathering di Bandung | Randi Andrian | randi@gmail.com | 081372276161 |
+| Example Tech Community | Komunitas praktisi teknologi dan arsitektur cloud di Jakarta | PIC Example A | pic_a@example.com | 081200000001 |
+| Example Green Movement | Gerakan relawan bank sampah dan aksi bersih lingkungan di Bandung | PIC Example B | pic_b@example.com | 085700000002 |
+| Example Runners Club | Komunitas lari sehat dan gathering pelari se-Yogyakarta | PIC Example C | pic_c@example.com | 081300000003 |
 
 ---
 
@@ -86,11 +86,11 @@ python community_osint.py input.xlsx --search-cache cache.json
 ## 📊 Format Output Kolom `Community Intelligence`
 
 ```text
-Sosmed Komunitas: IG: https://www.instagram.com/cloudcommunity.id/ (4.2k followers); FB Group: https://facebook.com/groups/cloudid; Linktree: https://linktr.ee/cloudcommunity
-Daerah / Wilayah: Jakarta (Jabodetabek)
-Komunitas Lain Kelolaan PIC: DevOps Forum Indonesia, Yayasan Edukasi Teknologi
-Komunitas Sejenis di Jakarta: Jakarta Tech Community, Python Developers Group, Kopi & Cloud
-Profil PIC: Nama: Faisal Reza | No HP/WA: 08123456789 | Email: faisal@gmail.com | Platform Aktif: office365, spotify, twitter
+Sosmed Komunitas: IG: https://www.instagram.com/example_community/ (5.2k followers); FB Group: https://facebook.com/groups/example_comm; Linktree: https://linktr.ee/example_community
+Daerah / Wilayah: Jakarta Pusat, DKI Jakarta
+Komunitas Lain Kelolaan PIC: Example Developer Forum, Yayasan Inovasi Digital
+Komunitas Sejenis di Jakarta Pusat: Jakarta Tech Group, Python Developers Forum, Cloud & Code Community
+Profil PIC: Nama: PIC Example A | No HP/WA: 081200000001 | Email: pic_a@example.com | Platform Aktif: office365, spotify, twitter
 ```
 
 ---
