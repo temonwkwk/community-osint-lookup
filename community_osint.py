@@ -68,8 +68,8 @@ COMMUNITY_NICHE_KEYWORDS = [
 SOCIAL_PATTERNS = {
     "instagram": re.compile(r"https?://(?:www\.)?instagram\.com/([A-Za-z0-9_.]+)/?", re.I),
     "tiktok": re.compile(r"https?://(?:www\.)?tiktok\.com/@([A-Za-z0-9_.]+)", re.I),
+    "facebook_page": re.compile(r"https?://(?:www\.|web\.|m\.)?facebook\.com/(?:pages/|p/)?([A-Za-z0-9_.\-]+)/?", re.I),
     "facebook_group": re.compile(r"https?://(?:www\.|web\.|m\.)?facebook\.com/groups/([A-Za-z0-9_.\-]+)", re.I),
-    "facebook_page": re.compile(r"https?://(?:www\.|web\.|m\.)?facebook\.com/([A-Za-z0-9_.\-]+)", re.I),
     "twitter": re.compile(r"https?://(?:www\.)?(?:twitter|x)\.com/([A-Za-z0-9_]+)", re.I),
     "threads": re.compile(r"https?://(?:www\.)?threads\.net/@([A-Za-z0-9_.]+)", re.I),
     "linkedin": re.compile(r"https?://(?:[a-z]{2}\.)?linkedin\.com/(?:company|school)/([A-Za-z0-9\-_%]+)", re.I),
@@ -80,7 +80,7 @@ SOCIAL_PATTERNS = {
 
 RESERVED = {
     "p", "reel", "reels", "explore", "stories", "tv", "accounts", "about", "privacy",
-    "help", "legal", "developer", "directory", "share", "profile.php", "pages",
+    "help", "legal", "developer", "directory", "share", "profile.php", "pages", "groups",
     "watch", "events", "marketplace", "hashtag", "story", "i", "home",
     "search", "login", "signup", "policies", "terms", "settings", "notifications",
     "intent", "status", "people", "photo", "media", "tag", "discover",
@@ -372,10 +372,11 @@ def generate_community_queries(comm_name: str) -> list[str]:
             seen.add(q)
             qs.append(q)
 
-    add(f'"{comm_name}" site:instagram.com OR site:tiktok.com OR site:facebook.com')
+    add(f'"{comm_name}" site:instagram.com OR site:tiktok.com')
+    add(f'"{comm_name}" site:facebook.com -site:facebook.com/groups')
     add(f'"{comm_name}" site:linktr.ee OR site:campsite.bio OR site:taplink.cc')
     add(f'"{comm_name}" instagram')
-    add(f'"{comm_name}" facebook group OR "grup facebook"')
+    add(f'"{comm_name}" (facebook page OR facebook profil)')
 
     return qs
 
@@ -395,7 +396,8 @@ def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
         add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas) -"{current_comm}"')
         add(f'"{pic_name}" (komunitas OR yayasan OR project OR "movement" OR perkumpulan) -"{current_comm}"')
         add(f'"{pic_name}" site:linkedin.com/in')
-        add(f'"{pic_name}" site:facebook.com OR site:instagram.com')
+        add(f'"{pic_name}" site:facebook.com -site:facebook.com/groups')
+        add(f'"{pic_name}" site:instagram.com')
 
     return qs
 
@@ -603,9 +605,9 @@ def main() -> int:
         # 1. Official Community Social Media
         comm_socmed_list = []
         for plat, label in (
-            ("instagram", "IG"), ("facebook_group", "FB Group"), ("facebook_page", "FB Page"),
+            ("instagram", "IG"), ("facebook_page", "FB Page / Profil"),
             ("tiktok", "TikTok"), ("threads", "Threads"), ("linktree", "Linktree/Biolink"),
-            ("website", "Web Resmi"), ("linkedin", "LinkedIn")
+            ("website", "Web Resmi"), ("linkedin", "LinkedIn"), ("facebook_group", "FB Group")
         ):
             if plat in socials:
                 d = socials[plat]
