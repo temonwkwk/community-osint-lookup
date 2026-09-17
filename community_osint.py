@@ -426,18 +426,23 @@ def extract_chapter_federation_network(
     return discovered[:5]
 
 
-def extract_event_agenda_triggers(results: list[tuple[str, str]]) -> list[str]:
-    """Detect upcoming, recurring, or planned community events for outreach timing."""
+def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = "") -> list[str]:
+    """Detect community's own events or upcoming regional niche events/festivals in the area."""
     triggers = []
     seen = set()
 
     event_patterns = [
         re.compile(r"\b((?:Anniversary|Deklarasi|Milad|HUT)\s+(?:ke-?\d+|\d+th|\d+)?(?:\s+[A-Z][\w&'\-]+){0,2})\b", re.I),
         re.compile(r"\b((?:Touring|Tour de|Sunmori|Night Ride|Rolling Thunder|Kopdargab|Kopdar Akbar|Gathering|Family Gathering)\s+[A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2})\b", re.I),
-        re.compile(r"\b((?:Turnamen|Cup|Championship|Liga|Sparring|Fun Match|Festival|Fun Run|Marathon|Exhibition|Expo|Baksos|Bakti Sosial)\s+[A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2})\b", re.I),
+        re.compile(r"\b((?:Turnamen|Cup|Championship|Liga|Sparring|Fun Match|Festival|Fun Run|Marathon|Exhibition|Expo|Summit|Baksos|Bakti Sosial)\s+[A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2})\b", re.I),
     ]
 
     for url, title in results:
+        ig_handle = ""
+        ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
+        if ig_m and ig_m.group(1).lower() not in RESERVED:
+            ig_handle = f" (@{ig_m.group(1)})"
+
         for p in event_patterns:
             for m in p.finditer(title):
                 cand = m.group(1).strip(" -–—|·,:")
@@ -445,7 +450,7 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]]) -> list[str]:
                 if len(cand) < 6 or cand_clean in seen:
                     continue
                 seen.add(cand_clean)
-                triggers.append(cand)
+                triggers.append(f"{cand}{ig_handle}")
 
     return triggers[:4]
 
@@ -528,7 +533,7 @@ def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> l
 
 
 def generate_federation_chapter_queries(comm_name: str, niches: list[str], city: str, province: str) -> list[str]:
-    """Generate queries for finding parent federation/paguyuban and regional chapters."""
+    """Generate queries for parent federation, regional chapters, and upcoming events in the region."""
     qs = []
     seen = set()
 
@@ -545,6 +550,8 @@ def generate_federation_chapter_queries(comm_name: str, niches: list[str], city:
             add(f'site:instagram.com "ikatan {n}" "{province}"')
         if city and city != "Indonesia":
             add(f'site:instagram.com "{comm_name}" chapter OR korwil OR paguyuban')
+            add(f'site:instagram.com event "{n}" "{city}" OR festival OR tournament OR gathering')
+            add(f'jadwal event "{n}" "{city}" 2026')
 
     return qs
 
