@@ -288,7 +288,12 @@ def extract_community_niche(name: str, desc: str) -> list[str]:
     return found[:4]
 
 
-def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str, current_comm: str) -> list[str]:
+def extract_other_pic_communities(
+    results: list[tuple[str, str]],
+    pic_name: str,
+    current_comm: str,
+    main_comm_handle: str = ""
+) -> list[str]:
     """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity (including IG handles)."""
     discovered = []
     seen = set()
@@ -315,7 +320,7 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
         ig_handle = ""
         ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
         if ig_m and ig_m.group(1).lower() not in RESERVED:
-            ig_handle = f" (@{ig_m.group(1)})"
+            ig_handle = f"@{ig_m.group(1)}"
 
         contacts = extract_bio_contact_signals(title)
         contact_suffix = f" [{', '.join(contacts)}]" if contacts else ""
@@ -332,7 +337,13 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
                 if current_clean and (current_clean in cand_clean and len(cand_clean) - len(current_clean) < 3):
                     continue
                 seen.add(cand_clean)
-                discovered.append(f"{cand}{ig_handle}{contact_suffix}")
+
+                if ig_handle:
+                    discovered.append(f"{cand} ({ig_handle}){contact_suffix}")
+                elif main_comm_handle:
+                    discovered.append(f"{cand} (IG sama dengan induk: @{main_comm_handle}){contact_suffix}")
+                else:
+                    discovered.append(f"{cand}{contact_suffix}")
 
     return discovered[:5]
 
@@ -746,6 +757,8 @@ def main() -> int:
 
         socials = extract_community_socials(comm_results, comm_name)
 
+        main_handle = socials.get("instagram", {}).get("handle", "")
+
         # -------------------------------------------------------------
         # STEP 3: PIC Multi-Organization & Domicile Discovery
         # -------------------------------------------------------------
@@ -757,7 +770,7 @@ def main() -> int:
             for q in pic_queries:
                 print(f"           -> Q: {q}", flush=True)
                 pic_results += eng.search(q)
-            pic_other_comms = extract_other_pic_communities(pic_results + comm_results, pic_name, comm_name)
+            pic_other_comms = extract_other_pic_communities(pic_results + comm_results, pic_name, comm_name, main_comm_handle=main_handle)
             print(f"           Komunitas/Project Lain: {', '.join(pic_other_comms) if pic_other_comms else '-'}", flush=True)
 
         # -------------------------------------------------------------
@@ -781,7 +794,7 @@ def main() -> int:
         all_pool_results = comm_results + fed_results
         federation_network = extract_chapter_federation_network(all_pool_results, comm_name, city, province)
         event_triggers = extract_event_agenda_triggers(all_pool_results)
-        pic_other_comms = extract_other_pic_communities(all_pool_results + pic_results, pic_name, comm_name)
+        pic_other_comms = extract_other_pic_communities(all_pool_results + pic_results, pic_name, comm_name, main_comm_handle=main_handle)
 
         # -------------------------------------------------------------
         # STEP 6: Peer / Similar Communities in the Specific Region
