@@ -289,7 +289,7 @@ def extract_community_niche(name: str, desc: str) -> list[str]:
 
 
 def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str, current_comm: str) -> list[str]:
-    """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity."""
+    """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity (including IG handles)."""
     discovered = []
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
@@ -312,6 +312,14 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
     }
 
     for url, title in results:
+        ig_handle = ""
+        ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
+        if ig_m and ig_m.group(1).lower() not in RESERVED:
+            ig_handle = f" (@{ig_m.group(1)})"
+
+        contacts = extract_bio_contact_signals(title)
+        contact_suffix = f" [{', '.join(contacts)}]" if contacts else ""
+
         for p in org_patterns:
             for m in p.finditer(title):
                 cand = m.group(1).strip(" -–—|·,:")
@@ -324,7 +332,7 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
                 if current_clean and (current_clean in cand_clean and len(cand_clean) - len(current_clean) < 3):
                     continue
                 seen.add(cand_clean)
-                discovered.append(cand)
+                discovered.append(f"{cand}{ig_handle}{contact_suffix}")
 
     return discovered[:5]
 
