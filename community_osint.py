@@ -403,7 +403,7 @@ def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
 
 
 def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> list[str]:
-    """Generate search queries to discover peer/similar communities in the specific city and province."""
+    """Generate search queries to discover peer/similar communities with direct Instagram handles."""
     qs = []
     seen = set()
 
@@ -415,9 +415,12 @@ def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> l
 
     for n in niches[:2]:
         if city and city != "Indonesia":
-            add(f'komunitas "{n}" "{city}" site:instagram.com OR site:facebook.com')
+            add(f'site:instagram.com "{city}" "komunitas {n}" OR "{n} club"')
+            add(f'site:instagram.com "{city} chapter" "{n}"')
+            add(f'komunitas "{n}" "{city}" site:instagram.com')
             add(f'daftar komunitas {n} {city}')
         if province and province != "Cakupan Nasional":
+            add(f'site:instagram.com "paguyuban {n}" "{province}"')
             add(f'komunitas {n} "{province}"')
 
     return qs
