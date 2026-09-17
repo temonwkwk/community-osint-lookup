@@ -46,6 +46,8 @@ UA = (
 )
 
 COMMUNITY_NICHE_KEYWORDS = [
+    # Event & Hiburan
+    "event", "organizer", "eo", "wedding", "mice", "gathering", "party", "hiburan", "entertainment", "pameran", "expo",
     # Lingkungan & Sosial
     "lingkungan", "sampah", "plastik", "hutan", "relawan", "volunteer", "baksos", "charity",
     "sosial", "donasi", "peduli", "kemanusiaan", "pemberdayaan", "yayasan",
