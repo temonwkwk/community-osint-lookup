@@ -444,6 +444,7 @@ def generate_community_queries(comm_name: str) -> list[str]:
             seen.add(q)
             qs.append(q)
 
+    add(f'"{comm_name}"')
     add(f'"{comm_name}" site:instagram.com OR site:tiktok.com')
     add(f'"{comm_name}" site:facebook.com -site:facebook.com/groups')
     add(f'"{comm_name}" (festival OR project OR network OR yayasan OR inisiatif OR event OR agency)')
@@ -466,11 +467,19 @@ def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
             qs.append(q)
 
     if pic_name:
-        add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas) -"{current_comm}"')
-        add(f'"{pic_name}" (komunitas OR yayasan OR project OR "movement" OR perkumpulan) -"{current_comm}"')
-        add(f'"{pic_name}" site:linkedin.com/in')
-        add(f'"{pic_name}" site:facebook.com -site:facebook.com/groups')
-        add(f'"{pic_name}" site:instagram.com')
+        is_single_word = len(pic_name.strip().split()) < 2
+        if is_single_word:
+            # Single-word names must be bound to community name to avoid generic homonym noise
+            add(f'"{pic_name}" "{current_comm}"')
+            add(f'"{pic_name}" "{current_comm}" (founder OR ketua OR leader OR direktur OR inisiator)')
+            add(f'"{pic_name}" "{current_comm}" site:linkedin.com/in')
+            add(f'"{pic_name}" "{current_comm}" site:facebook.com OR site:instagram.com')
+        else:
+            add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas) -"{current_comm}"')
+            add(f'"{pic_name}" (komunitas OR yayasan OR project OR "movement" OR perkumpulan) -"{current_comm}"')
+            add(f'"{pic_name}" site:linkedin.com/in')
+            add(f'"{pic_name}" site:facebook.com -site:facebook.com/groups')
+            add(f'"{pic_name}" site:instagram.com')
 
     return qs
 
