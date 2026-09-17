@@ -147,6 +147,29 @@ class SearchEngine:
 
 # --------------------------------------------------------------------------- analyzers
 
+def extract_bio_contact_signals(text: str) -> list[str]:
+    """Extract WhatsApp, Contact Person (CP/Admin/PIC), email, and bio links from community snippet."""
+    signals = []
+    # WhatsApp / Phone
+    wa_match = re.search(r"(?:WA|WhatsApp|Contact|Hubungi|Phone|Telp|Call|Hotline)[\s:]*([+\d\s-]{9,16})", text, re.I)
+    if wa_match:
+        clean_num = re.sub(r"[^\d+]", "", wa_match.group(1).strip())
+        signals.append(f"WA: {clean_num}")
+    # Contact Person Name
+    cp_match = re.search(r"\b(?:CP|Contact Person|Admin|PIC|Narahubung)[\s:]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b", text, re.I)
+    if cp_match:
+        signals.append(f"CP: {cp_match.group(1).strip()}")
+    # Email in bio
+    email_match = re.search(r"\b([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b", text)
+    if email_match:
+        signals.append(f"Email: {email_match.group(1)}")
+    # Contact Links
+    link_match = re.search(r"((?:https?://)?(?:wa\.me|linktr\.ee|biolinky\.co|campsite\.bio|taplink\.cc)/\S+)", text, re.I)
+    if link_match:
+        signals.append(f"Link: {link_match.group(1).strip().rstrip('.,;')}")
+    return signals
+
+
 def extract_community_socials(results: list[tuple[str, str]], comm_name: str) -> dict[str, dict]:
     """Extract social links dedicated to the community itself."""
     tally: dict[str, dict] = {}
@@ -165,6 +188,11 @@ def extract_community_socials(results: list[tuple[str, str]], comm_name: str) ->
             f_match = re.search(r"([\d.,]+[KkMm]?\+?\s*(?:followers?|members?|pengikut|anggota))", title, re.I)
             if f_match:
                 sig.append(f_match.group(1).strip())
+
+            # Bio Contact extraction
+            contacts = extract_bio_contact_signals(title)
+            if contacts:
+                sig.extend(contacts)
 
             score = 1.0
             handle_clean = re.sub(r"[^a-zA-Z0-9]+", "", handle)
@@ -283,21 +311,31 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
 
 
 def extract_similar_communities(results: list[tuple[str, str]], current_comm: str) -> list[str]:
-    """Extract names of peer/similar communities in the region."""
+    """Extract names, handles, and contacts of peer/similar communities (including grassroots/small clubs)."""
     discovered = []
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
 
     comm_pat = re.compile(
-        r"\b((?:Komunitas|Grup|Forum|Yayasan|Perkumpulan|Paguyuban|Club|Community|Society|Movement|Alliance)\s+[A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3})\b",
+        r"\b((?:Komunitas|Grup|Forum|Yayasan|Perkumpulan|Paguyuban|Club|Community|Society|Movement|Alliance|Kolektif|Chapter)\s+[A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3})\b",
         re.I
     )
     comm_pat_en = re.compile(
-        r"\b([A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3}\s+(?:Community|Club|Group|Forum|Movement|Foundation|Network))\b",
+        r"\b([A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3}\s+(?:Community|Club|Group|Forum|Movement|Foundation|Network|Chapter|Collective))\b",
         re.I
     )
 
     for url, title in results:
+        # Check if url contains IG/FB handle
+        ig_handle = ""
+        ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
+        if ig_m and ig_m.group(1).lower() not in RESERVED:
+            ig_handle = f"@{ig_m.group(1)}"
+
+        # Extract contacts from title/bio snippet
+        contacts = extract_bio_contact_signals(title)
+        contact_suffix = f" [{', '.join(contacts)}]" if contacts else ""
+
         for p in (comm_pat, comm_pat_en):
             for m in p.finditer(title):
                 cand = m.group(1).strip(" -–—|·,:")
@@ -307,9 +345,16 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
                 if current_clean and (current_clean in cand_clean or cand_clean in current_clean):
                     continue
                 seen.add(cand.lower())
-                discovered.append(cand)
 
-    return discovered[:5]
+                label = cand
+                if ig_handle:
+                    label += f" ({ig_handle})"
+                if contact_suffix:
+                    label += f"{contact_suffix}"
+
+                discovered.append(label)
+
+    return discovered[:6]
 
 
 # --------------------------------------------------------------------------- query generators
