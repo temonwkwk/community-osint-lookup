@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Community OSINT Lookup & Mapping (`community_osint.py`)
+"""Community OSINT & Multi-Community Intelligence (`community_osint.py`)
 
 Input Format (Excel / CSV):
   Nama Komunitas | Deskripsi Komunitas | Nama PIC Komunitas | Email PIC | Nomor HP PIC
 
 Outputs:
   1. Sosmed Komunitas (Instagram, Facebook Group/Page, TikTok, Threads, Linktree/Web)
-  2. Daerah / Wilayah Cakupan Komunitas (Kota, Kabupaten, atau Nasional)
+  2. Daerah / Wilayah Komunitas: Format Terstruktur [Kota/Kabupaten, Provinsi]
   3. Komunitas Lain yang Dikelola oleh PIC yang Sama (Multi-community mapping)
   4. Komunitas Sejenis di Daerah Tersebut (Peer / Competitor communities)
 
@@ -26,46 +26,24 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+try:
+    from indonesian_regions import CITY_TO_PROVINCE_MAP
+except ImportError:
+    CITY_TO_PROVINCE_MAP = {
+        "jakarta": ("Jakarta", "DKI Jakarta"),
+        "bandung": ("Bandung", "Jawa Barat"),
+        "surabaya": ("Surabaya", "Jawa Timur"),
+        "yogyakarta": ("Yogyakarta", "DI Yogyakarta"),
+        "semarang": ("Semarang", "Jawa Tengah"),
+        "medan": ("Medan", "Sumatera Utara"),
+        "makassar": ("Makassar", "Sulawesi Selatan"),
+        "bali": ("Denpasar", "Bali"),
+    }
+
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
-
-# Induk kota & wilayah di Indonesia untuk deteksi daerah
-INDONESIAN_REGIONS = [
-    # Jabodetabek & Banten
-    "Jakarta", "Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara",
-    "Jabodetabek", "Bogor", "Depok", "Tangerang", "Tangerang Selatan", "Bekasi", "Banten", "Serang", "Cilegon",
-    # Jawa Barat
-    "Bandung", "Cimahi", "Cirebon", "Tasikmalaya", "Garut", "Sukabumi", "Karawang", "Purwakarta", "Subang", "Sumedang", "Indramayu", "Majalengka", "Kuningan", "Ciamis", "Banjar", "Pangandaran", "Jawa Barat", "Jabar",
-    # Jawa Tengah & DIY
-    "Semarang", "Solo", "Surakarta", "Yogyakarta", "Jogja", "Sleman", "Bantul", "Kulon Progo", "Gunungkidul",
-    "Magelang", "Salatiga", "Pekalongan", "Tegal", "Banyumas", "Purwokerto", "Cilacap", "Kudus", "Jepara", "Pati", "Klaten", "Jawa Tengah", "Jateng", "DIY",
-    # Jawa Timur
-    "Surabaya", "Malang", "Sidoarjo", "Gresik", "Kediri", "Blitar", "Madiun", "Jember", "Banyuwangi", "Pasuruan", "Mojokerto", "Batu", "Probolinggo", "Jawa Timur", "Jatim",
-    # Bali & Nusa Tenggara
-    "Bali", "Denpasar", "Badung", "Gianyar", "Ubud", "Singaraja", "Lombok", "Mataram", "Sumbawa", "Bima", "Kupang", "Flores", "Labuan Bajo", "NTB", "NTT",
-    # Sumatera
-    "Medan", "Deli Serdang", "Binjai", "Pematangsiantar", "Sumatera Utara", "Sumut",
-    "Palembang", "Sumatera Selatan", "Sumsel", "Padang", "Bukittinggi", "Sumatera Barat", "Sumbar",
-    "Pekanbaru", "Riau", "Batam", "Tanjungpinang", "Kepulauan Riau", "Kepri",
-    "Bandar Lampung", "Lampung", "Jambi", "Bengkulu", "Bangka", "Belitung", "Pangkalpinang", "Aceh", "Banda Aceh", "Lhokseumawe",
-    # Kalimantan
-    "Pontianak", "Singkawang", "Kalimantan Barat", "Kalbar",
-    "Banjarmasin", "Banjarbaru", "Kalimantan Selatan", "Kalsel",
-    "Balikpapan", "Samarinda", "IKN", "Nusantara", "Kutai Kartanegara", "Kalimantan Timur", "Kaltim",
-    "Palangkaraya", "Kalimantan Tengah", "Kalteng", "Tarakan", "Kalimantan Utara", "Kaltara",
-    # Sulawesi
-    "Makassar", "Gowa", "Maros", "Sulawesi Selatan", "Sulsel",
-    "Manado", "Tomohon", "Bitung", "Sulawesi Utara", "Sulut",
-    "Palu", "Sulawesi Tengah", "Sulteng", "Kendari", "Sulawesi Tenggara", "Sultra",
-    "Gorontalo", "Mamuju", "Sulawesi Barat", "Sulbar",
-    # Maluku & Papua
-    "Ambon", "Ternate", "Maluku", "Maluku Utara",
-    "Jayapura", "Sorong", "Timika", "Merauke", "Manokwari", "Papua",
-    # Nasional
-    "Indonesia", "Nasional",
-]
 
 COMMUNITY_NICHE_KEYWORDS = [
     # Lingkungan & Sosial
@@ -73,7 +51,7 @@ COMMUNITY_NICHE_KEYWORDS = [
     "sosial", "donasi", "peduli", "kemanusiaan", "pemberdayaan", "yayasan",
     # Olahraga & Hobi
     "lari", "running", "marathon", "sepeda", "cycling", "gowes", "motor", "motoran", "touring",
-    "otomotif", "kopi", "coffee", "barista", "fotografi", "photography", "hiking", "gunung",
+    "riding", "otomotif", "kopi", "coffee", "barista", "fotografi", "photography", "hiking", "gunung",
     "backpacker", "traveler", "kuliner", "makanan", "buku", "literasi",
     # Teknologi & Bisnis
     "programming", "developer", "coding", "python", "javascript", "golang", "flutter",
@@ -183,13 +161,11 @@ def extract_community_socials(results: list[tuple[str, str]], comm_name: str) ->
             if not handle or handle in RESERVED or handle.startswith("profile.php"):
                 continue
 
-            # Follower / Member signal
             sig = []
             f_match = re.search(r"([\d.,]+[KkMm]?\+?\s*(?:followers?|members?|pengikut|anggota))", title, re.I)
             if f_match:
                 sig.append(f_match.group(1).strip())
 
-            # Specificity match with community name
             score = 1.0
             handle_clean = re.sub(r"[^a-zA-Z0-9]+", "", handle)
             if comm_clean in handle_clean or handle_clean in comm_clean:
@@ -209,29 +185,65 @@ def extract_community_socials(results: list[tuple[str, str]], comm_name: str) ->
     return tally
 
 
-def detect_community_region(texts: list[str]) -> str:
-    """Identify the geographic region / city of the community."""
+def detect_community_region_structured(
+    comm_texts: list[str],
+    pic_texts: list[str] | None = None,
+    phone: str = ""
+) -> tuple[str, str]:
+    """Identify City/Regency and Province in a structured hierarchy (Kota, Provinsi).
+    
+    Priority:
+      1. Direct mentions in Community bio / description / search results.
+      2. Mentions in PIC's personal profile / domicile ("Lives in Central Jakarta", "Bandung", etc.).
+      3. Phone HLR prefix indication.
+    """
     scores: dict[str, int] = {}
-    combined = " ".join(texts)
 
-    for region in INDONESIAN_REGIONS:
-        # Match word boundary
-        pattern = re.compile(rf"\b{re.escape(region)}\b", re.I)
-        matches = pattern.findall(combined)
-        if matches:
-            weight = len(matches)
-            # Give higher priority to specific cities over broad 'Indonesia'
-            if region.lower() in ("indonesia", "nasional"):
-                weight = 1
-            scores[region] = scores.get(region, 0) + weight
+    def score_corpus(texts: list[str], multiplier: int = 1):
+        combined = " ".join(texts).lower()
+        # Check longest matching city keys first
+        for key in sorted(CITY_TO_PROVINCE_MAP.keys(), key=len, reverse=True):
+            pat = rf"\b{re.escape(key)}\b"
+            matches = re.findall(pat, combined)
+            if matches:
+                # Add score weighted by matches and multiplier
+                scores[key] = scores.get(key, 0) + (len(matches) * multiplier)
 
-    if not scores:
-        return "Indonesia (Cakupan Nasional)"
+    # 1. Score community text (highest weight)
+    score_corpus(comm_texts, multiplier=3)
 
-    # Pick the highest ranked specific region
-    ranked = sorted(scores.items(), key=lambda kv: (-kv[1], -len(kv[0])))
-    top_region, top_score = ranked[0]
-    return top_region
+    # 2. Score PIC text (secondary weight for grassroots communities)
+    if pic_texts:
+        score_corpus(pic_texts, multiplier=2)
+
+    # Pick the highest scoring specific city/region
+    if scores:
+        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], -len(kv[0])))
+        best_key = ranked[0][0]
+        city_name, prov_name = CITY_TO_PROVINCE_MAP[best_key]
+        return (city_name, prov_name)
+
+    # 3. Fallback to phone HLR area if available
+    if phone:
+        p_clean = re.sub(r"[^\d]", "", phone)
+        if p_clean.startswith("021") or p_clean.startswith("6221"):
+            return ("Jabodetabek", "DKI Jakarta / Jawa Barat / Banten")
+        elif p_clean.startswith("022") or p_clean.startswith("6222"):
+            return ("Bandung", "Jawa Barat")
+        elif p_clean.startswith("024") or p_clean.startswith("6224"):
+            return ("Semarang", "Jawa Tengah")
+        elif p_clean.startswith("0274") or p_clean.startswith("62274"):
+            return ("Yogyakarta", "DI Yogyakarta")
+        elif p_clean.startswith("031") or p_clean.startswith("6231"):
+            return ("Surabaya", "Jawa Timur")
+        elif p_clean.startswith("0361") or p_clean.startswith("62361"):
+            return ("Denpasar", "Bali")
+        elif p_clean.startswith("061") or p_clean.startswith("6261"):
+            return ("Medan", "Sumatera Utara")
+        elif p_clean.startswith("0411") or p_clean.startswith("62411"):
+            return ("Makassar", "Sulawesi Selatan")
+
+    return ("Indonesia", "Cakupan Nasional")
 
 
 def extract_community_niche(name: str, desc: str) -> list[str]:
@@ -256,13 +268,11 @@ def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str,
     )
 
     for url, title in results:
-        # Extract from title/snippet
         for m in org_pattern.finditer(title):
             org_name = m.group(1).strip(" -–—|·,:")
             org_clean = re.sub(r"[^a-zA-Z0-9]+", "", org_name.lower())
             if not org_name or len(org_name) < 4:
                 continue
-            # Skip if it is the current community itself
             if current_clean and (current_clean in org_clean or org_clean in current_clean):
                 continue
             if org_name.lower() not in seen:
@@ -278,7 +288,6 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
 
-    # Patterns matching community names: e.g. "Komunitas Peduli Sampah", "Jakarta Running Club"
     comm_pat = re.compile(
         r"\b((?:Komunitas|Grup|Forum|Yayasan|Perkumpulan|Paguyuban|Club|Community|Society|Movement|Alliance)\s+[A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3})\b",
         re.I
@@ -305,7 +314,7 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
 
 # --------------------------------------------------------------------------- query generators
 
-def generate_community_queries(comm_name: str, region: str = "") -> list[str]:
+def generate_community_queries(comm_name: str) -> list[str]:
     """Generate search queries to find the community's official social media presence."""
     qs = []
     seen = set()
@@ -320,14 +329,12 @@ def generate_community_queries(comm_name: str, region: str = "") -> list[str]:
     add(f'"{comm_name}" site:linktr.ee OR site:campsite.bio OR site:taplink.cc')
     add(f'"{comm_name}" instagram')
     add(f'"{comm_name}" facebook group OR "grup facebook"')
-    if region:
-        add(f'"{comm_name}" {region} instagram')
 
     return qs
 
 
-def generate_pic_other_comm_queries(pic_name: str, current_comm: str) -> list[str]:
-    """Generate search queries to track other communities founded/managed by the PIC."""
+def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
+    """Generate search queries to track PIC personal profile, domicile, and other organizations."""
     qs = []
     seen = set()
 
@@ -341,12 +348,13 @@ def generate_pic_other_comm_queries(pic_name: str, current_comm: str) -> list[st
         add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas) -"{current_comm}"')
         add(f'"{pic_name}" (komunitas OR yayasan OR project OR "movement" OR perkumpulan) -"{current_comm}"')
         add(f'"{pic_name}" site:linkedin.com/in')
+        add(f'"{pic_name}" site:facebook.com OR site:instagram.com')
 
     return qs
 
 
-def generate_peer_comm_queries(niches: list[str], region: str) -> list[str]:
-    """Generate search queries to discover peer/similar communities in the region."""
+def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> list[str]:
+    """Generate search queries to discover peer/similar communities in the specific city and province."""
     qs = []
     seen = set()
 
@@ -356,10 +364,12 @@ def generate_peer_comm_queries(niches: list[str], region: str) -> list[str]:
             seen.add(q)
             qs.append(q)
 
-    clean_region = region if region and not region.startswith("Indonesia") else "Indonesia"
     for n in niches[:2]:
-        add(f'komunitas "{n}" {clean_region} site:instagram.com OR site:facebook.com')
-        add(f'daftar komunitas {n} {clean_region}')
+        if city and city != "Indonesia":
+            add(f'komunitas "{n}" "{city}" site:instagram.com OR site:facebook.com')
+            add(f'daftar komunitas {n} {city}')
+        if province and province != "Cakupan Nasional":
+            add(f'komunitas {n} "{province}"')
 
     return qs
 
@@ -420,7 +430,7 @@ def load_rows(path: Path, sheet: str | None):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Community OSINT & PIC Multi-Community Mapping")
+    ap = argparse.ArgumentParser(description="Community OSINT & Multi-Community Intelligence Mapping")
     ap.add_argument("input", help="Input file (.xlsx or .csv)")
     ap.add_argument("--sheet", default=None, help="Sheet name for Excel file")
     ap.add_argument("--search-cache", default=None, help="Path to JSON search cache")
@@ -480,7 +490,7 @@ def main() -> int:
         print(f"\n[{n}/{len(rows)}] 🏢 Memproses Komunitas: {comm_name} (PIC: {pic_name or '-'})", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 1: Holehe on PIC Email (Optional Context)
+        # STEP 1: Holehe on PIC Email
         # -------------------------------------------------------------
         holehe = {"used": []}
         if pic_email and not args.skip_holehe:
@@ -501,20 +511,13 @@ def main() -> int:
         socials = extract_community_socials(comm_results, comm_name)
 
         # -------------------------------------------------------------
-        # STEP 3: Detect Community Geographic Region
+        # STEP 3: PIC Multi-Organization & Domicile Discovery
         # -------------------------------------------------------------
-        all_snippets = [t for _, t in comm_results] + [desc, comm_name]
-        detected_region = detect_community_region(all_snippets)
-        print(f"  [Step 3] Wilayah/Daerah Komunitas: {detected_region}", flush=True)
-
-        # -------------------------------------------------------------
-        # STEP 4: PIC Other Communities / Multi-organization Mapping
-        # -------------------------------------------------------------
+        pic_results = []
         pic_other_comms = []
         if pic_name:
-            pic_queries = generate_pic_other_comm_queries(pic_name, comm_name)
-            print(f"  [Step 4] Melacak Komunitas Lain yang Dikelola PIC ({len(pic_queries)} query)...", flush=True)
-            pic_results = []
+            pic_queries = generate_pic_queries(pic_name, comm_name)
+            print(f"  [Step 3] Melacak Profil & Organisasi Lain PIC ({len(pic_queries)} query)...", flush=True)
             for q in pic_queries:
                 print(f"           -> Q: {q}", flush=True)
                 pic_results += eng.search(q)
@@ -522,13 +525,22 @@ def main() -> int:
             print(f"           Komunitas Lain PIC: {', '.join(pic_other_comms) if pic_other_comms else '-'}", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 5: Peer / Similar Communities in the Same Region
+        # STEP 4: Structured Geographic Resolution (Kota & Provinsi)
+        # -------------------------------------------------------------
+        comm_snippets = [t for _, t in comm_results] + [desc, comm_name]
+        pic_snippets = [t for _, t in pic_results]
+        city, province = detect_community_region_structured(comm_snippets, pic_snippets, phone=pic_phone)
+        region_display = f"{city}, {province}" if city != province and city != "Indonesia" else f"{city} ({province})"
+        print(f"  [Step 4] Wilayah Terdeteksi: {region_display}", flush=True)
+
+        # -------------------------------------------------------------
+        # STEP 5: Peer / Similar Communities in the Specific Region
         # -------------------------------------------------------------
         niches = extract_community_niche(comm_name, desc)
         similar_comms = []
         if niches:
-            peer_queries = generate_peer_comm_queries(niches, detected_region)
-            print(f"  [Step 5] Mencari Komunitas Sejenis di {detected_region} (Niche: {', '.join(niches)})...", flush=True)
+            peer_queries = generate_peer_comm_queries(niches, city, province)
+            print(f"  [Step 5] Mencari Komunitas Sejenis di {region_display} (Niche: {', '.join(niches)})...", flush=True)
             peer_results = []
             for q in peer_queries:
                 print(f"           -> Q: {q}", flush=True)
@@ -555,8 +567,8 @@ def main() -> int:
 
         lines.append("Sosmed Komunitas: " + ("; ".join(comm_socmed_list) if comm_socmed_list else "belum ditemukan publik"))
 
-        # 2. Region / Coverage Area
-        lines.append(f"Daerah / Wilayah: {detected_region}")
+        # 2. Region / Coverage Area (Structured: Kota, Provinsi)
+        lines.append(f"Daerah / Wilayah: {region_display}")
 
         # 3. Other Communities Managed by the Same PIC
         if pic_other_comms:
@@ -566,9 +578,9 @@ def main() -> int:
 
         # 4. Similar / Peer Communities in Region
         if similar_comms:
-            lines.append(f"Komunitas Sejenis di {detected_region}: " + ", ".join(similar_comms))
+            lines.append(f"Komunitas Sejenis di {city}: " + ", ".join(similar_comms))
         else:
-            lines.append(f"Komunitas Sejenis di {detected_region}: Belum terdeteksi di direktori publik")
+            lines.append(f"Komunitas Sejenis di {city}: Belum terdeteksi di direktori publik")
 
         # 5. PIC Contact & Verification
         pic_details = []
