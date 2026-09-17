@@ -289,27 +289,42 @@ def extract_community_niche(name: str, desc: str) -> list[str]:
 
 
 def extract_other_pic_communities(results: list[tuple[str, str]], pic_name: str, current_comm: str) -> list[str]:
-    """Find other projects, NGOs, foundations, and communities initiated/managed by the PIC."""
+    """Find other projects, sister brands, festivals, networks, and communities initiated/managed by the PIC/entity."""
     discovered = []
     seen = set()
     current_clean = re.sub(r"[^a-zA-Z0-9]+", "", current_comm.lower())
 
-    org_pattern = re.compile(
-        r"\b(?:Founder|Co-Founder|Inisiator|Ketua|Leader|Presiden|Pimpinan|CEO|Owner|Direktur|Aktivis|Penggagas)\s+(?:of\s+|di\s+|dari\s+)?([A-Z][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,4})\b",
-        re.I
-    )
+    org_patterns = [
+        re.compile(
+            r"\b(?:Founder|Co-Founder|Inisiator|Ketua|Leader|Presiden|Pimpinan|CEO|Owner|Direktur|Aktivis|Penggagas|Penyelenggara|Persembahan)\s+(?:of\s+|di\s+|dari\s+|oleh\s+)?([A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){1,3})\b",
+            re.I
+        ),
+        re.compile(
+            r"\b([A-Z0-9][\w&'\-]*(?:\s+[A-Z0-9][\w&'\-]*){0,2}\s+(?:Festival|Network|Agency|Movement|Initiative|Collective|Project|Foundation|Group|Media))\b",
+            re.I
+        ),
+    ]
+
+    # Stopwords to filter out sentence fragments
+    blacklist_words = {
+        "the", "a", "an", "is", "are", "and", "or", "in", "on", "at", "to", "for", "with",
+        "official", "photos", "videos", "reels", "posts", "facebook", "instagram", "tiktok"
+    }
 
     for url, title in results:
-        for m in org_pattern.finditer(title):
-            org_name = m.group(1).strip(" -–—|·,:")
-            org_clean = re.sub(r"[^a-zA-Z0-9]+", "", org_name.lower())
-            if not org_name or len(org_name) < 4:
-                continue
-            if current_clean and (current_clean in org_clean or org_clean in current_clean):
-                continue
-            if org_name.lower() not in seen:
-                seen.add(org_name.lower())
-                discovered.append(org_name)
+        for p in org_patterns:
+            for m in p.finditer(title):
+                cand = m.group(1).strip(" -–—|·,:")
+                cand_clean = re.sub(r"[^a-zA-Z0-9]+", "", cand.lower())
+                words = cand.lower().split()
+                if len(cand) < 4 or cand_clean in seen:
+                    continue
+                if any(w in blacklist_words for w in words[:1]) and len(words) > 2:
+                    continue
+                if current_clean and (current_clean in cand_clean and len(cand_clean) - len(current_clean) < 3):
+                    continue
+                seen.add(cand_clean)
+                discovered.append(cand)
 
     return discovered[:5]
 
@@ -419,7 +434,7 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]]) -> list[str]:
 # --------------------------------------------------------------------------- query generators
 
 def generate_community_queries(comm_name: str) -> list[str]:
-    """Generate search queries to find the community's official social media presence."""
+    """Generate search queries to find the community's official social media presence and sister projects."""
     qs = []
     seen = set()
 
@@ -431,6 +446,7 @@ def generate_community_queries(comm_name: str) -> list[str]:
 
     add(f'"{comm_name}" site:instagram.com OR site:tiktok.com')
     add(f'"{comm_name}" site:facebook.com -site:facebook.com/groups')
+    add(f'"{comm_name}" (festival OR project OR network OR yayasan OR inisiatif OR event OR agency)')
     add(f'"{comm_name}" site:linktr.ee OR site:campsite.bio OR site:taplink.cc')
     add(f'"{comm_name}" instagram')
     add(f'"{comm_name}" (facebook page OR facebook profil)')
@@ -724,8 +740,8 @@ def main() -> int:
             for q in pic_queries:
                 print(f"           -> Q: {q}", flush=True)
                 pic_results += eng.search(q)
-            pic_other_comms = extract_other_pic_communities(pic_results, pic_name, comm_name)
-            print(f"           Komunitas Lain PIC: {', '.join(pic_other_comms) if pic_other_comms else '-'}", flush=True)
+            pic_other_comms = extract_other_pic_communities(pic_results + comm_results, pic_name, comm_name)
+            print(f"           Komunitas/Project Lain: {', '.join(pic_other_comms) if pic_other_comms else '-'}", flush=True)
 
         # -------------------------------------------------------------
         # STEP 4: Structured Geographic Resolution (Kota & Provinsi)
@@ -748,6 +764,7 @@ def main() -> int:
         all_pool_results = comm_results + fed_results
         federation_network = extract_chapter_federation_network(all_pool_results, comm_name, city, province)
         event_triggers = extract_event_agenda_triggers(all_pool_results)
+        pic_other_comms = extract_other_pic_communities(all_pool_results + pic_results, pic_name, comm_name)
 
         # -------------------------------------------------------------
         # STEP 6: Peer / Similar Communities in the Specific Region
