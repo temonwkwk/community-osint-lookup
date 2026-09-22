@@ -455,9 +455,13 @@ def extract_chapter_federation_network(
 
 
 def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = "") -> list[str]:
-    """Detect community's own events or upcoming regional niche events/festivals in the area."""
+    """Detect community's upcoming events or regional festivals with date/article link, filtering out past events."""
     triggers = []
     seen = set()
+    current_year = 2026
+
+    # Past date indicators
+    past_years = [str(y) for y in range(2015, current_year)]  # 2015..2025
 
     event_patterns = [
         re.compile(r"\b((?:Anniversary|Deklarasi|Milad|HUT)\s+(?:ke-?\d+|\d+th|\d+)?(?:\s+[A-Z][\w&'\-]+){0,2})\b", re.I),
@@ -466,10 +470,19 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = ""
     ]
 
     for url, title in results:
-        ig_handle = ""
-        ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
-        if ig_m and ig_m.group(1).lower() not in RESERVED:
-            ig_handle = f" (@{ig_m.group(1)})"
+        # Filter out past events (e.g. 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+        combined_text = f"{title} {url}"
+        if any(re.search(rf"\b{py}\b", combined_text) for py in past_years):
+            continue
+
+        # Extract date indicator if present (e.g. 2026, 2027, 'Oktober 2026', '14-15 Oktober 2026')
+        date_match = re.search(r"\b(?:\d{1,2}\s+(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+)?(?:202[6-9]|203[0-9])\b", title, re.I)
+        date_str = f" [{date_match.group(0)}]" if date_match else ""
+
+        # Filter: require explicit future year or relevant upcoming keyword if it's a general article
+        has_future_signal = bool(date_match) or any(k in title.lower() for k in ("mendatang", "siap digelar", "jadwal", "2026", "2027"))
+        if not has_future_signal:
+            continue
 
         for p in event_patterns:
             for m in p.finditer(title):
@@ -478,7 +491,7 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = ""
                 if len(cand) < 6 or cand_clean in seen:
                     continue
                 seen.add(cand_clean)
-                triggers.append(f"{cand}{ig_handle}")
+                triggers.append(f"{cand}{date_str} - Sumber: {url}")
 
     return triggers[:4]
 
@@ -736,18 +749,21 @@ def main() -> int:
         print(f"  [Step 4] Wilayah Terdeteksi: {region_display}", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 5: Chapter, Federation & Event Trigger Discovery
+        # STEP 5: Event Trigger Discovery (Future/Upcoming Events Only)
         # -------------------------------------------------------------
         niches = extract_community_niche(comm_name, desc)
-        fed_queries = generate_federation_chapter_queries(comm_name, niches, city, province)
-        fed_results = []
-        for q in fed_queries:
-            fed_results += eng.search(q)
+        event_queries = []
+        if niches and city and city != "Indonesia":
+            event_queries.append(f'jadwal event "{niches[0]}" "{city}" 2026')
+            event_queries.append(f'festival "{niches[0]}" "{city}" 2026')
+        
+        event_results = []
+        for q in event_queries:
+            event_results += eng.search(q)
 
-        all_pool_results = comm_results + fed_results
-        federation_network = extract_chapter_federation_network(all_pool_results, comm_name, city, province)
-        event_triggers = extract_event_agenda_triggers(all_pool_results)
-        pic_other_comms = extract_other_pic_communities(all_pool_results + pic_results, pic_name, comm_name, main_comm_handle=main_handle)
+        all_event_pool = comm_results + event_results
+        event_triggers = extract_event_agenda_triggers(all_event_pool, city=city)
+        pic_other_comms = extract_other_pic_communities(pic_results + comm_results, pic_name, comm_name, main_comm_handle=main_handle)
 
         # -------------------------------------------------------------
         # STEP 6: Peer / Similar Communities in the Specific Region
@@ -782,11 +798,11 @@ def main() -> int:
         # 2. Other Communities of PIC
         val_other_pic = "\n".join(pic_other_comms) if pic_other_comms else "Tidak terdeteksi / hanya komunitas ini"
 
-        # 3. Chapter & Federation Network
-        val_federation = "\n".join(federation_network) if federation_network else "Independen / belum terindeks induk paguyuban"
+        # 3. Chapter & Federation Network (Skipped)
+        val_federation = "-"
 
         # 4. Event / Agenda Triggers
-        val_events = "\n".join(event_triggers) if event_triggers else "Tidak terdeteksi agenda khusus publik dalam waktu dekat"
+        val_events = "\n".join(event_triggers) if event_triggers else "Tidak terdeteksi agenda mendatang"
 
         # 5. Similar Peer Communities
         val_peers = "\n".join(similar_comms) if similar_comms else f"Belum terdeteksi direktori komunitas sejenis di {city}"
