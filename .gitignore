@@ -28,8 +28,10 @@ target*.xlsx
 target*.csv
 *_result.xlsx
 *_result.csv
-cache.json
-queries.json
+*.xlsx
+cache*.json
+queries*.json
+*.db
 *.cache
 *.log
 

@@ -276,14 +276,22 @@ def detect_community_region_structured(
 
 def extract_community_niche(name: str, desc: str) -> list[str]:
     """Extract key themes/niches from community name and description."""
-    combined = (name + " " + desc).lower()
+    # Skip deskripsi jika hanya berisi group order / order pekerja
+    clean_desc = desc
+    if re.search(r"\bgroup\s+order(?:\s+pekerja)?\b", desc, re.I):
+        clean_desc = ""
+
+    combined = (name + " " + clean_desc).strip().lower()
     found = []
     for kw in COMMUNITY_NICHE_KEYWORDS:
         if re.search(rf"\b{re.escape(kw)}\b", combined, re.I):
             found.append(kw)
-    if not found:
-        # Fallback to description words
-        words = [w for w in re.findall(r"\b[a-z]{4,}\b", combined) if w not in ("komunitas", "group", "official", "indonesia")]
+    if not found and clean_desc:
+        # Fallback to description words (excluding generic/order words)
+        words = [
+            w for w in re.findall(r"\b[a-z]{4,}\b", combined)
+            if w not in ("komunitas", "group", "official", "indonesia", "order", "pekerja", "karyawan", "member")
+        ]
         found = words[:2]
     return found[:4]
 
