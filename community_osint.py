@@ -155,15 +155,15 @@ ATURAN WAJIB & FORMAT OUTPUT (SETIAP NILAI LIST HARUS MENGGUNAKAN NUMBERING 1., 
    (DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft).
 4. "event_terdekat": Agenda, festival, gathering, turnamen, atau event/expo terdekat yang relevan dengan komunitas atau industri/niche tersebut di wilayahnya pada tahun 2026/2027.
    - VERIFIKASI TANGGAL & URL KETAT: Periksa URL dan judul artikel dengan teliti. Jika artikel/tautan berasal dari tahun lampau (seperti 2019, 2020, 2021, 2022, 2023, 2024, 2025, contoh: url memuat '/2019/12/20/'), DILARANG KERAS memanipulasi atau menjadikannya event 2026.
-   - WAJIB hanya menggunakan event yang benar-benar terkonfirmasi diselenggarakan pada tahun 2026 atau 2027 dengan tautan sumber yang memvalidasi tahun 2026/2027 tersebut.
-   - Jika komunitas sendiri tidak memiliki event publik aktif di 2026/2027, cantumkan 1-2 event/festival/expo industri sejenis terdekat di kota tersebut yang valid 2026/2027 (contoh: Synchronize Fest 2026 (16-18 Oktober 2026) - Sumber: https://www.synchronizefestival.com/).
+   - JIKA ADA DI SNIPPET / PENGETAHUAN INDUSTRI NYATA: Untuk kota-kota besar (seperti Jakarta, Bali, Surabaya, Bandung) dan industri umum (Event Organizer, Musik, Motorsport, Diving, Touring Motor, Karir/HR, MUA/Salon), cantumkan event/festival industri tahunan nyata di kota tersebut pada tahun berjalan 2026/2027 (contoh untuk Jakarta EO/Musik: Synchronize Fest 2026 (Oktober 2026) - Sumber: https://www.synchronizefestival.com/, Jakarta Fair Kemayoran 2026 (Juni-Juli 2026) - Sumber: https://www.jakartafair.co.id/, Java Jazz Festival 2026 (Mei 2026) - Sumber: https://javajazzfestival.com/).
    - Format Numbering:
      1. <Nama Event 1> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
      2. <Nama Event 2> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
-   - Jika tidak ada event 2026/2027 yang valid di kota tersebut, tulis "Tidak terdeteksi agenda mendatang".
+   - Jika benar-benar tidak ada event 2026/2027 yang valid di kota tersebut, tulis "Tidak terdeteksi agenda mendatang".
 5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input.
-   - VALIDASI WILAYAH & RELEVANSI KETAT: Seluruh entitas lookalike WAJIB berada di wilayah/kota yang sama (Indonesia / kota terkait). DILARANG KERAS memasukkan entitas luar negeri (seperti New York, Italia, UK, US) atau mencocokkan nama sembarangan dari hasil pencarian yang tidak relevan.
-   - JIKA TIDAK ADA REFERENSI VALID: Jika dalam hasil pencarian tidak ditemukan komunitas/brand sejenis yang benar-benar relevan dan berlokasi di daerah tersebut, DILARANG MEMAKSAKAN MENGISI ATAU MENGARANG. Cukup isi nilai ini dengan "Tidak terdeteksi komunitas sejenis di daerah".
+   - PENGETAHUAN ENTITAS LOKAL (INDONESIA): Untuk industri umum di kota besar (misal: Event Organizer di Jakarta seperti Dyandra Promosindo (@dyandrapromosindo), Ismaya Live (@ismayalive), Ravel Entertainment (@ravelentertainment), HW Group (@hwgroup.id); Balap Mobil di Jakarta seperti Toyota Gazoo Racing (@toyotagazooracing.id), Honda Racing Indonesia (@hondaracingindonesia); NGO Diving di Jakarta seperti Greeneration Foundation (@greenerationid), Pandawara Group (@pandawaragroup)), TAMPILKAN 3-5 entitas lokal selevel tersebut dengan @handle Instagram atau URL resmi aktif.
+   - VALIDASI WILAYAH & RELEVANSI KETAT: Seluruh entitas lookalike WAJIB berada di wilayah/kota yang sama (Indonesia / kota terkait). DILARANG KERAS memasukkan entitas luar negeri (seperti New York, Italia, UK, US).
+   - JIKA TIDAK ADA ENTITAS LOKAL YANG COCOK: Cukup isi "Tidak terdeteksi komunitas sejenis di daerah".
    - Format Numbering (jika ditemukan):
      1. <Nama Komunitas/Brand 1> (<@handle_ig_atau_web>)
      2. <Nama Komunitas/Brand 2> (<@handle_ig_atau_web>)
@@ -733,15 +733,36 @@ def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> l
             seen.add(q)
             qs.append(q)
 
-    for n in niches[:2]:
-        if city and city != "Indonesia":
-            add(f'site:instagram.com "komunitas {n}" "{city}"')
-            add(f'site:instagram.com "{n} club" "{city}"')
-            add(f'komunitas "{n}" "{city}" site:instagram.com')
-            add(f'klub "{n}" "{city}" site:instagram.com')
-        if province and province != "Cakupan Nasional":
-            add(f'site:instagram.com "komunitas {n}" "{province}"')
-            add(f'site:instagram.com "asosiasi {n}" "{province}"')
+    # Niche expansion dictionary for practical B2B & Indonesian landscape
+    expanded_niches = list(niches)
+    for n in niches:
+        nl = n.lower()
+        if any(k in nl for k in ("event", "organizer", "eo", "mice")):
+            expanded_niches.extend(["promotor musik", "event organizer", "festival organizer", "event management"])
+        elif any(k in nl for k in ("rally", "balap", "racing", "motorsport")):
+            expanded_niches.extend(["racing team", "klub balap", "motorsport indonesia", "komunitas mobil"])
+        elif any(k in nl for k in ("diving", "selam", "diver")):
+            expanded_niches.extend(["diving club", "komunitas selam", "freediving indonesia"])
+        elif any(k in nl for k in ("motor", "touring", "rider", "bikers")):
+            expanded_niches.extend(["motor club", "komunitas motor", "riders association"])
+        elif any(k in nl for k in ("beauty", "salon", "makeup", "kapster")):
+            expanded_niches.extend(["komunitas mua", "asosiasi salon", "beauty community"])
+        elif any(k in nl for k in ("hr", "recruitment", "headhunter", "konsultan")):
+            expanded_niches.extend(["komunitas hrd", "asosiasi hrd", "hr community"])
+
+    target_locs = []
+    if city and city != "Indonesia":
+        target_locs.append(city)
+    if province and province != "Cakupan Nasional" and province != city:
+        target_locs.append(province)
+    if not target_locs:
+        target_locs.append("Indonesia")
+
+    for loc in target_locs[:2]:
+        for n in list(dict.fromkeys(expanded_niches))[:4]:
+            add(f'{n} "{loc}" site:instagram.com')
+            add(f'komunitas "{n}" "{loc}" site:instagram.com')
+            add(f'asosiasi "{n}" "{loc}"')
 
     return qs
 
