@@ -756,7 +756,9 @@ def main() -> int:
     for n, row in enumerate(rows, 1):
         row = list(row) + [""] * (len(headers) - len(row))
         comm_name = str(row[idx["community_name"]]).strip() if "community_name" in idx else ""
-        desc = str(row[idx["description"]]).strip() if "description" in idx else ""
+        raw_desc = str(row[idx["description"]]).strip() if "description" in idx else ""
+        # Skip deskripsi jika hanya berisi group order / order pekerja agar tidak mencemari pencarian wilayah, niche, atau event
+        desc = "" if re.search(r"\bgroup\s+order(?:\s+pekerja)?\b", raw_desc, re.I) else raw_desc
         pic_name = str(row[idx["pic_name"]]).strip() if "pic_name" in idx else ""
         pic_email = str(row[idx["pic_email"]]).strip() if "pic_email" in idx else ""
         pic_phone = str(row[idx["pic_phone"]]).strip() if "pic_phone" in idx else ""
