@@ -142,26 +142,36 @@ DATA INPUT:
 RINGKASAN JEJAK PENCARIAN WEB (SNIPPETS):
 {json.dumps(search_snippets[:40], ensure_ascii=False, indent=1)}
 
-ATURAN WAJIB & FORMAT OUTPUT:
+ATURAN WAJIB & FORMAT OUTPUT (SETIAP NILAI LIST HARUS MENGGUNAKAN NUMBERING 1., 2., 3.):
 1. "wilayah": Tentukan Kota/Kabupaten & Provinsi spesifik (contoh: "Jakarta Selatan, DKI Jakarta" atau "Kuningan, Jawa Barat"). Jika lingkup se-Indonesia, tulis "Indonesia (Cakupan Nasional)".
-2. "sosmed": Tautkan Instagram resmi (sertakan kutipan bio resmi dalam tanda kurung jika ada) dan Web Resmi. Format:
-   IG: https://www.instagram.com/<handle>/ ("<bio_quote>")
-   Web Resmi: https://<domain>/
-   LinkedIn / Facebook (jika ada)
-3. "komunitas_lain_pic": Proyek, sister brand, festival, atau inisiatif bisnis/komunitas riil kelolaan PIC / komunitas (WAJIB sertakan @handle IG atau URL web, dan kategori/niche dalam tanda kurung). DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft.
+2. "sosmed": Tautkan media sosial resmi (utamakan Instagram dengan kutipan bio resmi, dan Website). Format Numbering:
+   1. IG: https://www.instagram.com/<handle>/ ("<bio_quote>")
+   2. Web Resmi: https://<domain>/
+   3. LinkedIn / Facebook (jika ada)
+3. "komunitas_lain_pic": Proyek, sister brand, festival, atau inisiatif bisnis/komunitas riil kelolaan PIC / komunitas. Format Numbering:
+   1. <Nama Inisiatif/Festival> (<@handle_ig_atau_web>) (<Kategori/Niche>)
+   2. <Nama Inisiatif 2> (<@handle_ig_atau_web>) (<Kategori/Niche>)
+   (DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft).
 4. "event_terdekat": Agenda, festival, gathering, turnamen, atau event/expo terdekat yang relevan dengan komunitas atau industri/niche tersebut di wilayahnya pada tahun 2026/2027.
    - Jika komunitas sendiri tidak memiliki event publik aktif, WAJIB fallback mencantumkan 1-2 event/festival/expo industri sejenis terdekat di kota tersebut sebagai bahan obrolan outreach.
-   - Format: "Nama Event (Bulan/Tanggal 2026/2027) - Sumber: URL" (contoh: "Synchronize Fest 2026 (4-6 Oktober 2026) - Sumber: https://...").
+   - Format Numbering:
+     1. <Nama Event 1> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
+     2. <Nama Event 2> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
    - DILARANG mencantumkan event yang sudah lewat (2015-2025). Hanya tulis "Tidak terdeteksi agenda mendatang" jika benar-benar tidak ada event relevan di kota tersebut.
-5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input. SETIAP nama komunitas/brand WAJIB menyertakan @handle Instagram aktif (contoh: "Ismaya Live (@ismayalive)") atau tautan web resmi. DILARANG memasukkan frasa noise seperti "Paguyuban KSE", "Chapter on Instagram", atau direktori umum tak terkait.
+5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input.
+   - Format Numbering:
+     1. <Nama Komunitas/Brand 1> (<@handle_ig_atau_web>)
+     2. <Nama Komunitas/Brand 2> (<@handle_ig_atau_web>)
+     3. <Nama Komunitas/Brand 3> (<@handle_ig_atau_web>)
+   - SETIAP entitas WAJIB menyertakan @handle Instagram aktif atau tautan web resmi. DILARANG memasukkan frasa noise seperti "Paguyuban KSE", "Chapter on Instagram", atau direktori umum tak terkait.
 
 Kembalikan output DALAM BENTUK JSON VALID MURNI dengan struktur:
 {{
   "wilayah": "...",
-  "sosmed": "...",
-  "komunitas_lain_pic": "...",
-  "event_terdekat": "...",
-  "komunitas_sejenis": "..."
+  "sosmed": "1. ...\\n2. ...",
+  "komunitas_lain_pic": "1. ...\\n2. ...",
+  "event_terdekat": "1. ...\\n2. ...",
+  "komunitas_sejenis": "1. ...\\n2. ...\\n3. ..."
 }}
 """
 
