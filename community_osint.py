@@ -153,11 +153,13 @@ ATURAN WAJIB & FORMAT OUTPUT (SETIAP NILAI LIST HARUS MENGGUNAKAN NUMBERING 1., 
    2. <Nama Inisiatif 2> (<@handle_ig_atau_web>) (<Kategori/Niche>)
    (DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft).
 4. "event_terdekat": Agenda, festival, gathering, turnamen, atau event/expo terdekat yang relevan dengan komunitas atau industri/niche tersebut di wilayahnya pada tahun 2026/2027.
-   - Jika komunitas sendiri tidak memiliki event publik aktif, WAJIB fallback mencantumkan 1-2 event/festival/expo industri sejenis terdekat di kota tersebut sebagai bahan obrolan outreach.
+   - VERIFIKASI TANGGAL & URL KETAT: Periksa URL dan judul artikel dengan teliti. Jika artikel/tautan berasal dari tahun lampau (seperti 2019, 2020, 2021, 2022, 2023, 2024, 2025, contoh: url memuat '/2019/12/20/'), DILARANG KERAS memanipulasi atau menjadikannya event 2026.
+   - WAJIB hanya menggunakan event yang benar-benar terkonfirmasi diselenggarakan pada tahun 2026 atau 2027 dengan tautan sumber yang memvalidasi tahun 2026/2027 tersebut.
+   - Jika komunitas sendiri tidak memiliki event publik aktif di 2026/2027, cantumkan 1-2 event/festival/expo industri sejenis terdekat di kota tersebut yang valid 2026/2027 (contoh: Synchronize Fest 2026 (16-18 Oktober 2026) - Sumber: https://www.synchronizefestival.com/).
    - Format Numbering:
      1. <Nama Event 1> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
      2. <Nama Event 2> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
-   - DILARANG mencantumkan event yang sudah lewat (2015-2025). Hanya tulis "Tidak terdeteksi agenda mendatang" jika benar-benar tidak ada event relevan di kota tersebut.
+   - Jika tidak ada event 2026/2027 yang valid di kota tersebut, tulis "Tidak terdeteksi agenda mendatang".
 5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input.
    - Format Numbering:
      1. <Nama Komunitas/Brand 1> (<@handle_ig_atau_web>)
