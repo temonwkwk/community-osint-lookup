@@ -1,107 +1,85 @@
-# Community OSINT & Multi-Community Intelligence (`community_osint.py`)
+# Community OSINT & Intelligence Engine (`community_osint.py`)
 
-Tools otomatisasi investigasi OSINT (*Open Source Intelligence*) berbasis Python yang dioptimalkan khusus untuk **Pemetaan Ekosistem Komunitas, Multi-Komunitas PIC, Penetrasi Chapter Regional, dan Prospek Komunitas Sejenis di Daerah** berdasarkan data Excel/CSV.
-
----
-
-## 🎯 Fitur & Alur Utama (Outreach & Insurance B2B Focused)
-
-1. **Pemisahan Kolom Excel Terstruktur**:
-   - Hasil investigasi dipecah menjadi kolom-kolom rapi terpisah yang mudah di-*filter*, di-*sort*, dan dianalisis oleh tim *sales/outreach*.
-2. **Penelusuran Media Sosial & Kontak Bio Komunitas**:
-   - Mencari akun Instagram resmi, Facebook Page/Profil resmi, TikTok, Threads, Linktree, dan Website resmi.
-   - **Ekstraksi Kontak Bio Otomatis**: Menarik nomor WhatsApp Admin/CP, nama Narahubung, dan tautan bio (`wa.me`, `linktr.ee`) langsung dari metadata profil komunitas.
-3. **Deteksi Wilayah Terstruktur (`Kota & Provinsi`)**:
-   - Menggunakan database hierarki geografis 500+ Kota/Kabupaten ke 38 Provinsi di Indonesia untuk menetapkan domisili komunitas secara presisi.
-4. **Multi-Community Portfolio PIC**:
-   - Melacak inisiatif, project sosial, yayasan, atau komunitas lain yang dikelola oleh PIC yang sama untuk peluang *cross-selling* (lengkap dengan akun Instagram masing-masing entitas).
-5. **Pemetaan Induk Organisasi & Chapter Regional (*Federation / Chapter Mapping*)**:
-   - Mendeteksi afiliasi induk paguyuban (misal: Paguyuban Honda Jawa Barat, Ikatan Motor Indonesia) dan chapter kota tetangga.
-6. **Pelacakan Agenda & Event Terdekat (*Outreach Timing Trigger*)**:
-   - Memindai agenda aktif komunitas (seperti *Anniversary, Touring, Gathering, Turnamen, Fun Run, Baksos, Expo*) atau agenda event regional sejenis di kota tersebut agar penawaran asuransi event masuk tepat waktu.
-7. **Pencarian Komunitas Sejenis di Daerah (*Lookalike Peer Communities*)**:
-   - Menghasilkan 3–6 nama komunitas serupa di kota yang sama **wajib lengkap dengan akun Instagram (`@handle`) dan kontak bio**.
+Alat investigasi OSINT (*Open Source Intelligence*) otomatis berbasis Python + **Gemini AI Reasoning Engine** yang dioptimalkan khusus untuk **Pemetaan Ekosistem B2B, Sosmed Multi-Handle, Proyek PIC, Agenda Event Mendatang, dan Komunitas Sejenis di Daerah** dari file Excel/CSV.
 
 ---
 
-## 📋 Format File Input
+## 🎯 Fitur & Alur Kerja Utama
 
-File input dapat berupa `.xlsx` atau `.csv`. Header kolom otomatis terdeteksi (case-insensitive):
-- **Nama Komunitas**: `Nama Komunitas`, `Komunitas`, `Community`
-- **Deskripsi Komunitas**: `Deskripsi Komunitas`, `Deskripsi`, `Kegiatan`, `About`
-- **Nama PIC**: `Nama PIC Komunitas`, `PIC`, `Ketua`, `Founder`, `Leader`
-- **Email PIC**: `Email PIC`, `Email`, `Mail`
-- **Nomor HP PIC**: `Nomor HP PIC`, `No HP`, `Telepon`, `WhatsApp`
-
-Contoh:
-
-| Nama Komunitas | Deskripsi Komunitas | Nama PIC Komunitas | Email PIC | Nomor HP PIC |
-| :--- | :--- | :--- | :--- | :--- |
-| Example Riders Club | Komunitas Motor dan Touring Regional | PIC Example A | pic_a@example.com | 081200000001 |
-| Example Tennis Community | Komunitas Tenis dan Sparring Mingguan | PIC Example B | pic_b@example.com | 085700000002 |
-| Example Creative EO | Event Organizer dan Festival Musik | PIC Example C | pic_c@example.com | 081300000003 |
+1. **Hybrid Architecture (Web Scraping + Gemini AI Reasoning Engine):**
+   - Mengumpulkan data web & media sosial mentah dari Google Search.
+   - Menggunakan **Gemini Flash (Free Tier)** untuk memilah konteks, menyaring *noise* (seperti Paguyuban beasiswa kampus, artikel kadaluarsa, atau direktori palsu) sehingga output 100% kontekstual dan akurat.
+2. **Format Numbering Standar (`1., 2., 3.`):**
+   - Seluruh nilai multi-item dalam satu kolom otomatis diformat dalam daftar bernomor rapi per baris (bukan koma panjang).
+3. **Multi-Handle Social Media Extraction:**
+   - Menangkap seluruh kanal resmi yang relevan (akun tim utama, divisi balap/rebranding, sub-brand, website, dan LinkedIn) lengkap dengan kutipan *bio quote*.
+4. **Verifikasi Tanggal Event Mendatang (2026/2027):**
+   - Dilengkapi validasi *timestamp* URL ketat untuk mencegah manipulasi artikel lampau (2015–2025). Hanya menampilkan agenda aktif dengan tanggal spesifik dan tautan sumber valid.
+5. **Multi-Project & Inisiatif PIC:**
+   - Melacak portofolio komunitas/bisnis lain yang dikelola PIC yang sama lengkap dengan kategori dan tautan/@handle.
+6. **Peer / Lookalike Communities Selevel di Wilayah:**
+   - Menyajikan 3–5 kompetitor/mitra sejenis di kota terkait dengan `@handle` Instagram atau tautan resmi.
+7. **Pembersihan Otomatis Data Internal:**
+   - Deskripsi bertipe *"Group Order"* atau *"Group Order Pekerja"* otomatis diabaikan dari pencarian deskripsi agar tidak mengotori kueri intelijen.
 
 ---
 
-## 📊 Format Kolom Output Excel (`*_result.xlsx`)
+## 📊 Struktur Kolom Output Excel (`*_result.xlsx`)
 
-Hasil disimpan otomatis ke `<input>_result.xlsx` dengan kolom terpisah:
+File output mempertahankan **seluruh kolom input asli di bagian depan** dan menambahkan 5 kolom intelijen dengan *styling* header Navy (`#1F4E78`):
 
-| Kolom Hasil | Penjelasan Isi |
+| Kolom Intelijen | Format Output & Penjelasan |
 | :--- | :--- |
-| **Wilayah Terdeteksi** | Kota/Kabupaten dan Provinsi (contoh: *Kuningan, Jawa Barat*) |
-| **Sosmed Resmi Komunitas** | Akun resmi IG, FB Page/Profil, Linktree, Web (beserta kontak bio / CP) |
-| **Komunitas Lain Milik PIC** | Daftar komunitas/yayasan lain yang dikelola PIC yang sama beserta IG (@) |
-| **Jejaring Chapter & Induk** | Induk paguyuban atau chapter regional terhubung |
-| **Agenda / Event Terdekat** | Pemicu waktu kontak (contoh: *Anniversary ke-5, Touring Gabungan, Fun Run 2026*) |
-| **Komunitas Sejenis di Daerah** | 3–6 komunitas serupa di daerah tersebut beserta akun IG (`@handle`) & WA |
+| **Wilayah Terdeteksi** | Kota/Kabupaten dan Provinsi (contoh: *Jakarta Selatan, DKI Jakarta*) |
+| **Sosmed Resmi Komunitas** | `1. IG: https://... ("bio quote")` <br> `2. Web Resmi: https://...` |
+| **Komunitas Lain Kelolaan PIC** | `1. Nama Inisiatif (https://link/@handle) (Kategori/Niche)` |
+| **Agenda / Event Terdekat** | `1. Nama Event 2026 (Bulan/Tanggal 2026) - Sumber: https://...` |
+| **Komunitas Sejenis di Daerah** | `1. Nama Brand/Komunitas (@handle_ig atau URL)` |
 
 ---
 
 ## 🛠️ Cara Penggunaan
 
-Pastikan menggunakan Python 3.10+ (disarankan Python 3.12).
+### 1. Persyaratan Sistem & Instalasi
+* Python 3.10+ (disarankan 3.11 / 3.12)
+* Google Gemini API Key (Gratis di Google AI Studio)
 
-### 1. Instalasi
 ```bash
 git clone https://github.com/temonwkwk/community-osint-lookup.git
 cd community-osint-lookup
 pip install -r requirements.txt
 ```
 
+Setel API Key di environment atau di file `~/.hermes/.env`:
+```bash
+export GOOGLE_API_KEY="AIzaSy..."
+```
+
 ---
 
-### 2. Mode Eksekusi Langsung
+### 2. Eksekusi CLI
+
+**Mode Standar (Pencarian Langsung):**
 ```bash
 python community_osint.py data_komunitas.xlsx
 ```
 
----
-
-### 3. Mode 2-Pass Cache (Direkomendasikan untuk Data Ratusan Baris)
-
-**Langkah 1 — Ambil Daftar Query:**
+**Mode Cache (Sangat Cepat untuk Batch Ratusan Data):**
 ```bash
+# 1. Dump seluruh kueri yang dibutuhkan
 python community_osint.py data_komunitas.xlsx --search-cache cache.json --dump-queries queries.json --no-live-search
-```
 
-**Langkah 2 — Isi Cache (`cache.json`):**
-Ambil hasil pencarian untuk `queries.json` ke dalam `cache.json`.
-
-**Langkah 3 — Eksekusi Analisis Lengkap:**
-```bash
+# 2. Jalankan analisis dengan cache
 python community_osint.py data_komunitas.xlsx --search-cache cache.json
 ```
 
 ---
 
-## 🔒 Privasi & Keamanan Data
-
+## 🔒 Keamanan & Privasi
 - Seluruh data pribadi, nomor kontak, dan file target diamankan otomatis oleh `.gitignore`.
-- Tidak ada data yang diunggah ke server pihak ketiga.
+- API Key tersimpan secara lokal dan aman.
 
 ---
 
 ## 📄 Lisensi
-
 Didistribusikan di bawah Lisensi [MIT](LICENSE).
