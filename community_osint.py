@@ -144,10 +144,11 @@ RINGKASAN JEJAK PENCARIAN WEB (SNIPPETS):
 
 ATURAN WAJIB & FORMAT OUTPUT (SETIAP NILAI LIST HARUS MENGGUNAKAN NUMBERING 1., 2., 3.):
 1. "wilayah": Tentukan Kota/Kabupaten & Provinsi spesifik (contoh: "Jakarta Selatan, DKI Jakarta" atau "Kuningan, Jawa Barat"). Jika lingkup se-Indonesia, tulis "Indonesia (Cakupan Nasional)".
-2. "sosmed": Tautkan media sosial resmi (utamakan Instagram dengan kutipan bio resmi, dan Website). Format Numbering:
-   1. IG: https://www.instagram.com/<handle>/ ("<bio_quote>")
-   2. Web Resmi: https://<domain>/
-   3. LinkedIn / Facebook (jika ada)
+2. "sosmed": Tautkan SELURUH kanal media sosial resmi yang relevan. Jika ada beberapa akun Instagram (seperti akun komunitas/tim asli @toyotateamindonesia, akun divisi balap/rebranding @toyotagazooracing.id, akun korporat @toyotaid), akun Facebook, LinkedIn, dan Website resmi, WAJIB TAMPILKAN SEMUA AKUN TERSEBUT (multi-handle) dalam format numbering lengkap dengan kutipan bio resminya. Format Numbering:
+   1. IG: https://www.instagram.com/<handle_1>/ ("<bio_quote>")
+   2. IG: https://www.instagram.com/<handle_2>/ ("<bio_quote>")
+   3. Web Resmi: https://<domain>/
+   4. LinkedIn / Facebook / YouTube (jika ada)
 3. "komunitas_lain_pic": Proyek, sister brand, festival, atau inisiatif bisnis/komunitas riil kelolaan PIC / komunitas. Format Numbering:
    1. <Nama Inisiatif/Festival> (<@handle_ig_atau_web>) (<Kategori/Niche>)
    2. <Nama Inisiatif 2> (<@handle_ig_atau_web>) (<Kategori/Niche>)
