@@ -149,7 +149,10 @@ ATURAN WAJIB & FORMAT OUTPUT:
    Web Resmi: https://<domain>/
    LinkedIn / Facebook (jika ada)
 3. "komunitas_lain_pic": Proyek, sister brand, festival, atau inisiatif bisnis/komunitas riil kelolaan PIC / komunitas (WAJIB sertakan @handle IG atau URL web, dan kategori/niche dalam tanda kurung). DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft.
-4. "event_terdekat": Agenda, festival, atau event terdekat komunitas/industri sejenis di kota tersebut. WAJIB mencantumkan tanggal/bulan spesifik di tahun berjalan 2026/2027 dan tautan artikel/sumber valid. DILARANG memasukkan event kadaluarsa (2015-2025). Jika tidak ada event spesifik, tulis "Tidak terdeteksi agenda mendatang".
+4. "event_terdekat": Agenda, festival, gathering, turnamen, atau event/expo terdekat yang relevan dengan komunitas atau industri/niche tersebut di wilayahnya pada tahun 2026/2027.
+   - Jika komunitas sendiri tidak memiliki event publik aktif, WAJIB fallback mencantumkan 1-2 event/festival/expo industri sejenis terdekat di kota tersebut sebagai bahan obrolan outreach.
+   - Format: "Nama Event (Bulan/Tanggal 2026/2027) - Sumber: URL" (contoh: "Synchronize Fest 2026 (4-6 Oktober 2026) - Sumber: https://...").
+   - DILARANG mencantumkan event yang sudah lewat (2015-2025). Hanya tulis "Tidak terdeteksi agenda mendatang" jika benar-benar tidak ada event relevan di kota tersebut.
 5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input. SETIAP nama komunitas/brand WAJIB menyertakan @handle Instagram aktif (contoh: "Ismaya Live (@ismayalive)") atau tautan web resmi. DILARANG memasukkan frasa noise seperti "Paguyuban KSE", "Chapter on Instagram", atau direktori umum tak terkait.
 
 Kembalikan output DALAM BENTUK JSON VALID MURNI dengan struktur:
@@ -909,16 +912,21 @@ def main() -> int:
         # -------------------------------------------------------------
         niches = extract_community_niche(comm_name, desc)
         event_queries = []
-        if niches and city and city != "Indonesia":
-            event_queries.append(f'jadwal event "{niches[0]}" "{city}" 2026')
-            event_queries.append(f'festival "{niches[0]}" "{city}" 2026')
+        target_city = city if (city and city != "Indonesia") else "Jakarta"
+        target_niche = niches[0] if niches else "komunitas"
+
+        event_queries.append(f'jadwal event "{target_niche}" "{target_city}" 2026')
+        event_queries.append(f'festival "{target_niche}" "{target_city}" 2026')
+        event_queries.append(f'agenda expo pameran "{target_niche}" "{target_city}" 2026')
+        if comm_name:
+            event_queries.append(f'"{comm_name}" event 2026 OR 2027')
         
         event_results = []
         for q in event_queries:
             event_results += eng.search(q)
 
         all_event_pool = comm_results + event_results
-        event_triggers = extract_event_agenda_triggers(all_event_pool, city=city)
+        event_triggers = extract_event_agenda_triggers(all_event_pool, city=target_city)
         pic_other_comms = extract_other_pic_communities(pic_results + comm_results, pic_name, comm_name, main_comm_handle=main_handle)
 
         # -------------------------------------------------------------
