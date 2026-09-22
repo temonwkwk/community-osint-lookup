@@ -925,8 +925,10 @@ def main() -> int:
         target_city = city if (city and city != "Indonesia") else "Jakarta"
         target_niche = niches[0] if niches else "komunitas"
 
+        # Kueri pencarian event mendatang spesifik
+        event_queries.append(f'festival event "mendatang" "{target_city}" 2026')
+        event_queries.append(f'festival event "{target_niche}" "mendatang" "{target_city}" 2026')
         event_queries.append(f'jadwal event "{target_niche}" "{target_city}" 2026')
-        event_queries.append(f'festival "{target_niche}" "{target_city}" 2026')
         event_queries.append(f'agenda expo pameran "{target_niche}" "{target_city}" 2026')
         if comm_name:
             event_queries.append(f'"{comm_name}" event 2026 OR 2027')
