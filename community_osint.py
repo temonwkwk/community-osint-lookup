@@ -533,7 +533,7 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = ""
 
 # --------------------------------------------------------------------------- query generators
 
-def generate_community_queries(comm_name: str) -> list[str]:
+def generate_community_queries(comm_name: str, email: str = "") -> list[str]:
     """Generate search queries to find the community's official social media presence and sister projects."""
     qs = []
     seen = set()
@@ -544,10 +544,20 @@ def generate_community_queries(comm_name: str) -> list[str]:
             seen.add(q)
             qs.append(q)
 
+    # 1. Direct domain anchoring from email if custom domain exists
+    email_domain = ""
+    if email and "@" in email:
+        dom = email.split("@")[1].strip().lower()
+        if dom not in ("gmail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "icloud.com", "sampoerna.com"):
+            email_domain = dom
+            add(f'"{email_domain}"')
+            add(f'"{email_domain}" site:instagram.com OR site:linkedin.com')
+
     add(f'"{comm_name}"')
     add(f'"{comm_name}" site:instagram.com OR site:tiktok.com')
     add(f'"{comm_name}" site:facebook.com -site:facebook.com/groups')
-    add(f'"{comm_name}" (festival OR project OR network OR yayasan OR inisiatif OR event OR agency)')
+    add(f'"{comm_name}" site:linkedin.com/company')
+    add(f'"{comm_name}" (festival OR project OR network OR yayasan OR inisiatif OR event OR agency OR consulting OR salon)')
     add(f'"{comm_name}" site:linktr.ee OR site:campsite.bio OR site:taplink.cc')
     add(f'"{comm_name}" instagram')
     add(f'"{comm_name}" (facebook page OR facebook profil)')
@@ -555,7 +565,7 @@ def generate_community_queries(comm_name: str) -> list[str]:
     return qs
 
 
-def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
+def generate_pic_queries(pic_name: str, current_comm: str, pic_email: str = "") -> list[str]:
     """Generate search queries to track PIC personal profile, domicile, and other organizations."""
     qs = []
     seen = set()
@@ -566,17 +576,27 @@ def generate_pic_queries(pic_name: str, current_comm: str) -> list[str]:
             seen.add(q)
             qs.append(q)
 
+    email_domain = ""
+    if pic_email and "@" in pic_email:
+        dom = pic_email.split("@")[1].strip().lower()
+        if dom not in ("gmail.com", "yahoo.com", "ymail.com", "hotmail.com", "outlook.com", "icloud.com"):
+            email_domain = dom
+
     if pic_name:
         is_single_word = len(pic_name.strip().split()) < 2
         if is_single_word:
             # Single-word names must be bound to community name to avoid generic homonym noise
             add(f'"{pic_name}" "{current_comm}"')
-            add(f'"{pic_name}" "{current_comm}" (founder OR ketua OR leader OR direktur OR inisiator)')
+            if email_domain:
+                add(f'"{pic_name}" "{email_domain}"')
+            add(f'"{pic_name}" "{current_comm}" (founder OR ketua OR leader OR direktur OR inisiator OR consultant OR partner)')
             add(f'"{pic_name}" "{current_comm}" site:linkedin.com/in')
             add(f'"{pic_name}" "{current_comm}" site:facebook.com OR site:instagram.com')
         else:
-            add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas) -"{current_comm}"')
-            add(f'"{pic_name}" (komunitas OR yayasan OR project OR "movement" OR perkumpulan) -"{current_comm}"')
+            add(f'"{pic_name}" "{current_comm}"')
+            if email_domain:
+                add(f'"{pic_name}" "{email_domain}"')
+            add(f'"{pic_name}" (founder OR inisiator OR ketua OR leader OR pimpinan OR penggagas OR consultant) -"{current_comm}"')
             add(f'"{pic_name}" site:linkedin.com/in')
             add(f'"{pic_name}" site:facebook.com -site:facebook.com/groups')
             add(f'"{pic_name}" site:instagram.com')
@@ -749,7 +769,7 @@ def main() -> int:
         # -------------------------------------------------------------
         # STEP 1: Community Official Socials & Bio Contact Discovery
         # -------------------------------------------------------------
-        comm_queries = generate_community_queries(comm_name)
+        comm_queries = generate_community_queries(comm_name, email=pic_email)
         print(f"  [Step 1] Mencari Sosmed & Bio Kontak Komunitas ({len(comm_queries)} query)...", flush=True)
         comm_results = []
         for q in comm_queries:
@@ -765,7 +785,7 @@ def main() -> int:
         pic_results = []
         pic_other_comms = []
         if pic_name:
-            pic_queries = generate_pic_queries(pic_name, comm_name)
+            pic_queries = generate_pic_queries(pic_name, comm_name, pic_email=pic_email)
             print(f"  [Step 3] Melacak Profil & Organisasi Lain PIC ({len(pic_queries)} query)...", flush=True)
             for q in pic_queries:
                 print(f"           -> Q: {q}", flush=True)
