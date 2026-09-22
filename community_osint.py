@@ -712,8 +712,7 @@ def main() -> int:
     structured_new_cols = [
         "Wilayah Terdeteksi",
         "Sosmed Resmi Komunitas",
-        "Komunitas Lain Milik PIC",
-        "Jejaring Chapter & Induk",
+        "Komunitas Lain Kelolaan PIC",
         "Agenda / Event Terdekat",
         "Komunitas Sejenis di Daerah",
     ]
@@ -849,8 +848,7 @@ def main() -> int:
 
         out_row[col_map["Wilayah Terdeteksi"]] = region_display
         out_row[col_map["Sosmed Resmi Komunitas"]] = val_socmed
-        out_row[col_map["Komunitas Lain Milik PIC"]] = val_other_pic
-        out_row[col_map["Jejaring Chapter & Induk"]] = val_federation
+        out_row[col_map["Komunitas Lain Kelolaan PIC"]] = val_other_pic
         out_row[col_map["Agenda / Event Terdekat"]] = val_events
         out_row[col_map["Komunitas Sejenis di Daerah"]] = val_peers
 
@@ -859,16 +857,15 @@ def main() -> int:
     # Format Column Widths & Alignment
     col_widths = {
         "Wilayah Terdeteksi": 25,
-        "Sosmed Resmi Komunitas": 40,
-        "Komunitas Lain Milik PIC": 30,
-        "Jejaring Chapter & Induk": 32,
-        "Agenda / Event Terdekat": 30,
+        "Sosmed Resmi Komunitas": 45,
+        "Komunitas Lain Kelolaan PIC": 38,
+        "Agenda / Event Terdekat": 45,
         "Komunitas Sejenis di Daerah": 45,
     }
 
     for i, h in enumerate(out_headers, 1):
         letter = get_column_letter(i)
-        ws.column_dimensions[letter].width = col_widths.get(h, 25)
+        ws.column_dimensions[letter].width = col_widths.get(h, 22)
 
     for r in ws.iter_rows(min_row=2):
         for c in r:
