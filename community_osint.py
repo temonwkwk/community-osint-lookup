@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import subprocess
 import sys
@@ -29,6 +30,8 @@ import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+import requests
 
 try:
     from indonesian_regions import CITY_TO_PROVINCE_MAP
@@ -94,7 +97,104 @@ RESERVED = {
 }
 
 
-# --------------------------------------------------------------------------- search engine
+# --------------------------------------------------------------------------- AI Agent Reasoning Engine (Gemini Free Tier)
+
+def get_google_api_key() -> str:
+    key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    if not key:
+        env_file = Path.home() / ".hermes" / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith("GOOGLE_API_KEY="):
+                    key = line.split("=", 1)[1].strip("\"' ")
+                    break
+    return key
+
+
+def analyze_community_with_ai(
+    comm_name: str,
+    raw_desc: str,
+    pic_name: str,
+    pic_email: str,
+    pic_phone: str,
+    search_snippets: list[str],
+    api_key: str = ""
+) -> dict[str, str] | None:
+    """Use Gemini (with automatic fallback & retry) to structure, filter, and correlate OSINT data with high accuracy."""
+    if not api_key:
+        api_key = get_google_api_key()
+    if not api_key:
+        return None
+
+    proxies = {"http": "socks5h://127.0.0.1:40000", "https": "socks5h://127.0.0.1:40000"}
+
+    prompt = f"""
+Anda adalah pakar OSINT intelijen komunitas dan pasar B2B Indonesia.
+Tugas Anda adalah memproses hasil penelusuran web untuk sebuah komunitas/organisasi target dan menghasilkan data terstruktur, bersih, akurat 1:1, dan bebas noise.
+
+DATA INPUT:
+- Nama Komunitas: {comm_name}
+- Deskripsi Asli: {raw_desc}
+- Nama PIC: {pic_name}
+- Email PIC / Komunitas: {pic_email}
+- Telepon / WA: {pic_phone}
+
+RINGKASAN JEJAK PENCARIAN WEB (SNIPPETS):
+{json.dumps(search_snippets[:40], ensure_ascii=False, indent=1)}
+
+ATURAN WAJIB & FORMAT OUTPUT:
+1. "wilayah": Tentukan Kota/Kabupaten & Provinsi spesifik (contoh: "Jakarta Selatan, DKI Jakarta" atau "Kuningan, Jawa Barat"). Jika lingkup se-Indonesia, tulis "Indonesia (Cakupan Nasional)".
+2. "sosmed": Tautkan Instagram resmi (sertakan kutipan bio resmi dalam tanda kurung jika ada) dan Web Resmi. Format:
+   IG: https://www.instagram.com/<handle>/ ("<bio_quote>")
+   Web Resmi: https://<domain>/
+   LinkedIn / Facebook (jika ada)
+3. "komunitas_lain_pic": Proyek, sister brand, festival, atau inisiatif bisnis/komunitas riil kelolaan PIC / komunitas (WAJIB sertakan @handle IG atau URL web, dan kategori/niche dalam tanda kurung). DILARANG memasukkan organisasi global/badan sertifikasi seperti FIFA, PADI, Google, Microsoft.
+4. "event_terdekat": Agenda, festival, atau event terdekat komunitas/industri sejenis di kota tersebut. WAJIB mencantumkan tanggal/bulan spesifik di tahun berjalan 2026/2027 dan tautan artikel/sumber valid. DILARANG memasukkan event kadaluarsa (2015-2025). Jika tidak ada event spesifik, tulis "Tidak terdeteksi agenda mendatang".
+5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input. SETIAP nama komunitas/brand WAJIB menyertakan @handle Instagram aktif (contoh: "Ismaya Live (@ismayalive)") atau tautan web resmi. DILARANG memasukkan frasa noise seperti "Paguyuban KSE", "Chapter on Instagram", atau direktori umum tak terkait.
+
+Kembalikan output DALAM BENTUK JSON VALID MURNI dengan struktur:
+{{
+  "wilayah": "...",
+  "sosmed": "...",
+  "komunitas_lain_pic": "...",
+  "event_terdekat": "...",
+  "komunitas_sejenis": "..."
+}}
+"""
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.2
+        }
+    }
+
+    # Model priority list with fallback
+    models_to_try = [
+        "gemini-3.7-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.6-flash"
+    ]
+
+    for model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        for attempt in range(2):
+            try:
+                res = requests.post(url, json=payload, proxies=proxies, timeout=25)
+                if res.status_code == 200:
+                    data = res.json()
+                    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    return json.loads(text)
+                elif res.status_code in (429, 503):
+                    time.sleep(2)
+                    continue
+            except Exception:
+                time.sleep(1)
+                continue
+
+    return None
 
 class SearchEngine:
     """Cache-first search engine."""
@@ -825,10 +925,10 @@ def main() -> int:
         # STEP 6: Peer / Similar Communities in the Specific Region
         # -------------------------------------------------------------
         similar_comms = []
+        peer_results = []
         if niches:
             peer_queries = generate_peer_comm_queries(niches, city, province)
             print(f"  [Step 6] Mencari Komunitas Sejenis di {region_display} (Niche: {', '.join(niches)})...", flush=True)
-            peer_results = []
             for q in peer_queries:
                 print(f"           -> Q: {q}", flush=True)
                 peer_results += eng.search(q)
@@ -836,32 +936,42 @@ def main() -> int:
             print(f"           Komunitas Sejenis: {', '.join(similar_comms) if similar_comms else '-'}", flush=True)
 
         # -------------------------------------------------------------
-        # STEP 7: Format Structured Data Values for Output
+        # STEP 7: Format Structured Data Values (with AI Reasoning Enhancement)
         # -------------------------------------------------------------
-        # 1. Official Social Media
-        comm_socmed_list = []
-        for plat, label in (
-            ("instagram", "IG"), ("facebook_page", "FB Page / Profil"),
-            ("tiktok", "TikTok"), ("threads", "Threads"), ("linktree", "Linktree/Biolink"),
-            ("website", "Web Resmi"), ("linkedin", "LinkedIn"), ("facebook_group", "FB Group")
-        ):
-            if plat in socials:
-                d = socials[plat]
-                sig_str = f" ({', '.join(d['signals'])})" if d.get("signals") else ""
-                comm_socmed_list.append(f"{label}: {d['url']}{sig_str}")
-        val_socmed = "\n".join(comm_socmed_list) if comm_socmed_list else "Belum ditemukan publik"
+        # Gather all snippets for AI Context
+        all_snippets = [f"[{u}] {t}" for u, t in (comm_results + pic_results + event_results + peer_results)]
+        ai_data = analyze_community_with_ai(
+            comm_name=comm_name,
+            raw_desc=raw_desc,
+            pic_name=pic_name,
+            pic_email=pic_email,
+            pic_phone=pic_phone,
+            search_snippets=all_snippets
+        )
 
-        # 2. Other Communities of PIC
-        val_other_pic = "\n".join(pic_other_comms) if pic_other_comms else "Tidak terdeteksi / hanya komunitas ini"
-
-        # 3. Chapter & Federation Network (Skipped)
-        val_federation = "-"
-
-        # 4. Event / Agenda Triggers
-        val_events = "\n".join(event_triggers) if event_triggers else "Tidak terdeteksi agenda mendatang"
-
-        # 5. Similar Peer Communities
-        val_peers = "\n".join(similar_comms) if similar_comms else f"Belum terdeteksi direktori komunitas sejenis di {city}"
+        if ai_data:
+            print(f"  [AI ✨] Berhasil melakukan penalaran kontekstual via Gemini 3.6 Flash.", flush=True)
+            region_display = ai_data.get("wilayah") or region_display
+            val_socmed = ai_data.get("sosmed") or "Belum ditemukan publik"
+            val_other_pic = ai_data.get("komunitas_lain_pic") or "Tidak terdeteksi / hanya komunitas ini"
+            val_events = ai_data.get("event_terdekat") or "Tidak terdeteksi agenda mendatang"
+            val_peers = ai_data.get("komunitas_sejenis") or f"Belum terdeteksi direktori komunitas sejenis di {city}"
+        else:
+            # Fallback to local rule-based values
+            comm_socmed_list = []
+            for plat, label in (
+                ("instagram", "IG"), ("facebook_page", "FB Page / Profil"),
+                ("tiktok", "TikTok"), ("threads", "Threads"), ("linktree", "Linktree/Biolink"),
+                ("website", "Web Resmi"), ("linkedin", "LinkedIn"), ("facebook_group", "FB Group")
+            ):
+                if plat in socials:
+                    d = socials[plat]
+                    sig_str = f" ({', '.join(d['signals'])})" if d.get("signals") else ""
+                    comm_socmed_list.append(f"{label}: {d['url']}{sig_str}")
+            val_socmed = "\n".join(comm_socmed_list) if comm_socmed_list else "Belum ditemukan publik"
+            val_other_pic = "\n".join(pic_other_comms) if pic_other_comms else "Tidak terdeteksi / hanya komunitas ini"
+            val_events = "\n".join(event_triggers) if event_triggers else "Tidak terdeteksi agenda mendatang"
+            val_peers = "\n".join(similar_comms) if similar_comms else f"Belum terdeteksi direktori komunitas sejenis di {city}"
 
         # Assemble Output Row
         out_row = [""] * len(out_headers)
