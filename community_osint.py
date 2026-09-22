@@ -162,7 +162,9 @@ ATURAN WAJIB & FORMAT OUTPUT (SETIAP NILAI LIST HARUS MENGGUNAKAN NUMBERING 1., 
      2. <Nama Event 2> (<Bulan/Tanggal 2026/2027>) - Sumber: <URL>
    - Jika tidak ada event 2026/2027 yang valid di kota tersebut, tulis "Tidak terdeteksi agenda mendatang".
 5. "komunitas_sejenis": 3-5 komunitas/brand selevel di daerah tersebut yang satu rumpun industri/niche dengan komunitas input.
-   - Format Numbering:
+   - VALIDASI WILAYAH & RELEVANSI KETAT: Seluruh entitas lookalike WAJIB berada di wilayah/kota yang sama (Indonesia / kota terkait). DILARANG KERAS memasukkan entitas luar negeri (seperti New York, Italia, UK, US) atau mencocokkan nama sembarangan dari hasil pencarian yang tidak relevan.
+   - JIKA TIDAK ADA REFERENSI VALID: Jika dalam hasil pencarian tidak ditemukan komunitas/brand sejenis yang benar-benar relevan dan berlokasi di daerah tersebut, DILARANG MEMAKSAKAN MENGISI ATAU MENGARANG. Cukup isi nilai ini dengan "Tidak terdeteksi komunitas sejenis di daerah".
+   - Format Numbering (jika ditemukan):
      1. <Nama Komunitas/Brand 1> (<@handle_ig_atau_web>)
      2. <Nama Komunitas/Brand 2> (<@handle_ig_atau_web>)
      3. <Nama Komunitas/Brand 3> (<@handle_ig_atau_web>)
