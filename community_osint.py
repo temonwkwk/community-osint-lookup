@@ -391,11 +391,31 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
         re.I
     )
 
+    # Blacklist generic fragment & noise names
+    noise_patterns = {
+        "photos", "videos", "reels", "posts", "stories", "instagram", "facebook", "tiktok",
+        "chapter on instagram", "chapter jakarta on instagram", "community events", "kse",
+        "karya salemba empat", "beasiswa", "universitas", "kuliah", "asia's big energy",
+        "komunitas di jakarta", "komunitas di indonesia", "daftar komunitas", "info komunitas"
+    }
+
     for url, title in results:
         ig_handle = ""
         ig_m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)", url, re.I)
         if ig_m and ig_m.group(1).lower() not in RESERVED:
-            ig_handle = f" (@{ig_m.group(1)})"
+            ig_handle = f"@{ig_m.group(1)}"
+
+        web_source = ""
+        if not ig_handle:
+            # Cari domain web jika bukan instagram
+            web_m = re.search(r"https?://(?:www\.)?([A-Za-z0-9\-]+\.[A-Za-z]{2,})(?:/[^\s]*)?", url, re.I)
+            if web_m and not any(ign in web_m.group(1).lower() for ign in ("google", "facebook", "tiktok", "youtube")):
+                web_source = url
+
+        # Wajib memiliki IG handle atau Website/URL terverifikasi
+        ident = f" ({ig_handle})" if ig_handle else (f" - {web_source}" if web_source else "")
+        if not ident:
+            continue
 
         contacts = extract_bio_contact_signals(title)
         contact_suffix = f" [{', '.join(contacts)}]" if contacts else ""
@@ -404,14 +424,21 @@ def extract_similar_communities(results: list[tuple[str, str]], current_comm: st
             for m in p.finditer(title):
                 cand = m.group(1).strip(" -–—|·,:")
                 cand_clean = re.sub(r"[^a-zA-Z0-9]+", "", cand.lower())
-                if len(cand) < 5 or cand.lower() in seen:
+                cand_lower = cand.lower().strip()
+
+                if len(cand) < 5 or cand_clean in seen:
+                    continue
+                if any(np in cand_lower for np in noise_patterns):
+                    continue
+                if cand_lower in GLOBAL_ORGANIZATIONS_BLACKLIST or any(gb in cand_lower for gb in GLOBAL_ORGANIZATIONS_BLACKLIST):
                     continue
                 if current_clean and (current_clean in cand_clean or cand_clean in current_clean):
                     continue
-                seen.add(cand.lower())
-                discovered.append(f"{cand}{ig_handle}{contact_suffix}")
 
-    return discovered[:6]
+                seen.add(cand_clean)
+                discovered.append(f"{cand}{ident}{contact_suffix}")
+
+    return discovered[:5]
 
 
 def extract_chapter_federation_network(
@@ -455,13 +482,13 @@ def extract_chapter_federation_network(
 
 
 def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = "") -> list[str]:
-    """Detect community's upcoming events or regional festivals with date/article link, filtering out past events."""
+    """Detect community's upcoming events or regional festivals with explicit date and article link, filtering out past events."""
     triggers = []
     seen = set()
     current_year = 2026
 
-    # Past date indicators
-    past_years = [str(y) for y in range(2015, current_year)]  # 2015..2025
+    # Past date indicators (years 2015..2025)
+    past_years = [str(y) for y in range(2015, current_year)]
 
     event_patterns = [
         re.compile(r"\b((?:Anniversary|Deklarasi|Milad|HUT)\s+(?:ke-?\d+|\d+th|\d+)?(?:\s+[A-Z][\w&'\-]+){0,2})\b", re.I),
@@ -470,19 +497,27 @@ def extract_event_agenda_triggers(results: list[tuple[str, str]], city: str = ""
     ]
 
     for url, title in results:
-        # Filter out past events (e.g. 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+        # Filter out past events (2015..2025)
         combined_text = f"{title} {url}"
         if any(re.search(rf"\b{py}\b", combined_text) for py in past_years):
             continue
 
-        # Extract date indicator if present (e.g. 2026, 2027, 'Oktober 2026', '14-15 Oktober 2026')
-        date_match = re.search(r"\b(?:\d{1,2}\s+(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+)?(?:202[6-9]|203[0-9])\b", title, re.I)
-        date_str = f" [{date_match.group(0)}]" if date_match else ""
+        # Extract explicit date format (e.g. '14-15 Oktober 2026', '25 November 2026', 'Oktober 2026', 'Q4 2026')
+        # Wajib ada nama bulan atau tanggal spesifik bersama tahun 2026+ (bukan cuma tahun 2026 doang)
+        date_match = re.search(
+            r"\b(?:\d{1,2}(?:\s*[-–—]\s*\d{1,2})?\s+)?(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Q[1-4])\s+(?:202[6-9]|203[0-9])\b",
+            title,
+            re.I
+        )
+        if not date_match:
+            # Cari juga pola tanggal numerik: DD/MM/2026 atau DD-MM-2026
+            date_match = re.search(r"\b\d{1,2}[/-]\d{1,2}[/-](?:202[6-9]|203[0-9])\b", title)
 
-        # Filter: require explicit future year or relevant upcoming keyword if it's a general article
-        has_future_signal = bool(date_match) or any(k in title.lower() for k in ("mendatang", "siap digelar", "jadwal", "2026", "2027"))
-        if not has_future_signal:
+        # Jika tidak ada tanggal spesifik (hanya tahun doang atau tidak ada tanggal), skip
+        if not date_match:
             continue
+
+        date_str = f" ({date_match.group(0).strip()})"
 
         for p in event_patterns:
             for m in p.finditer(title):
@@ -562,13 +597,13 @@ def generate_peer_comm_queries(niches: list[str], city: str, province: str) -> l
 
     for n in niches[:2]:
         if city and city != "Indonesia":
-            add(f'site:instagram.com "{city}" "komunitas {n}" OR "{n} club"')
-            add(f'site:instagram.com "{city} chapter" "{n}"')
+            add(f'site:instagram.com "komunitas {n}" "{city}"')
+            add(f'site:instagram.com "{n} club" "{city}"')
             add(f'komunitas "{n}" "{city}" site:instagram.com')
-            add(f'daftar komunitas {n} {city}')
+            add(f'klub "{n}" "{city}" site:instagram.com')
         if province and province != "Cakupan Nasional":
-            add(f'site:instagram.com "paguyuban {n}" "{province}"')
-            add(f'komunitas {n}" "{province}"')
+            add(f'site:instagram.com "komunitas {n}" "{province}"')
+            add(f'site:instagram.com "asosiasi {n}" "{province}"')
 
     return qs
 
